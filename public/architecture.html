@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>原点社区 · 架构图</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f1a;
+    color: #e8e8f0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem;
+    min-height: 100vh;
+  }
+  h1 { color: #7c6cf0; margin-bottom: 0.5rem; font-size: 1.8rem; }
+  .subtitle { color: #9090b0; margin-bottom: 2rem; font-size: 0.95rem; }
+
+  .diagram {
+    max-width: 1100px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+  }
+
+  /* ── 三维示意图 ── */
+  .dimension-section {
+    background: #1a1a2e;
+    border: 1px solid #2d2d4a;
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .dimension-section h2 {
+    font-size: 1rem;
+    color: #7c6cf0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #2d2d4a;
+    padding-bottom: 0.6rem;
+  }
+  .dim-label {
+    display: inline-block;
+    font-size: 0.75rem;
+    background: #7c6cf0;
+    color: #fff;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 0.5rem;
+  }
+
+  /* 横向模块布局 */
+  .h-modules {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    justify-content: center;
+  }
+  .h-module {
+    background: #232342;
+    border: 1px solid #2d2d4a;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    min-width: 140px;
+    text-align: center;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .h-module:hover { border-color: #7c6cf0; }
+  .h-module .icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+  .h-module .name { font-weight: 600; font-size: 0.9rem; }
+  .h-module .desc { color: #9090b0; font-size: 0.75rem; margin-top: 0.2rem; }
+
+  /* 内核盒子 */
+  .kernel-box {
+    text-align: center;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #7c6cf0, #5a4bd8);
+    border-radius: 16px;
+    padding: 1.2rem 2rem;
+    width: fit-content;
+  }
+  .kernel-box h3 { font-size: 1.2rem; }
+  .kernel-box .desc { font-size: 0.8rem; color: rgba(255,255,255,0.8); }
+
+  /* 纵向布局 */
+  .v-tree {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .v-level {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    position: relative;
+    margin: 0.3rem 0;
+  }
+  .v-node {
+    background: #232342;
+    border: 1px solid #2d2d4a;
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    text-align: center;
+    min-width: 110px;
+  }
+  .v-node.top { border-color: #7c6cf0; }
+  .v-node .name { font-weight: 600; font-size: 0.85rem; }
+  .v-node .desc { color: #9090b0; font-size: 0.7rem; }
+  .v-line {
+    color: #2d2d4a;
+    font-size: 0.8rem;
+    margin: 0.1rem 0;
+  }
+
+  /* 高维布局 */
+  .evo-tree {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+  }
+  .evo-source {
+    background: #232342;
+    border: 1px solid #7c6cf0;
+    border-radius: 8px;
+    padding: 0.8rem 1.2rem;
+    text-align: center;
+  }
+  .evo-source .name { font-weight: 600; font-size: 0.85rem; }
+
+  .evo-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .evo-arrow { color: #2d2d4a; font-size: 0.8rem; }
+
+  .evo-versions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .evo-version {
+    background: #1f1f35;
+    border: 1px dashed #5a4bd8;
+    border-radius: 6px;
+    padding: 0.5rem 0.8rem;
+    text-align: center;
+    font-size: 0.75rem;
+  }
+  .evo-version .name { font-weight: 600; }
+  .evo-version .desc { color: #9090b0; font-size: 0.65rem; }
+  .evo-version.active { border-style: solid; border-color: #4ade80; }
+
+  /* 连接线辅助 */
+  .connection-hint {
+    text-align: center;
+    color: #2d2d4a;
+    font-size: 0.8rem;
+    padding: 0.3rem 0;
+  }
+
+  /* 说明 */
+  .legend {
+    background: #1a1a2e;
+    border: 1px solid #2d2d4a;
+    border-radius: 12px;
+    padding: 1.2rem;
+    margin-top: 1rem;
+  }
+  .legend h3 { font-size: 0.9rem; color: #7c6cf0; margin-bottom: 0.6rem; }
+  .legend-item { display: flex; gap: 0.6rem; align-items: center; font-size: 0.8rem; margin: 0.3rem 0; }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+  .legend-dot.purple { background: #7c6cf0; }
+  .legend-dot.green { background: #4ade80; }
+  .legend-dot.dashed { border: 2px dashed #5a4bd8; background: transparent; }
+
+  @media (max-width: 640px) {
+    .h-module { min-width: 100px; padding: 0.8rem; }
+    .v-node { min-width: 80px; }
+    .diagram { gap: 1rem; }
+  }
+</style>
+</head>
+<body>
+  <h1>⚪ 原点社区 · 三维架构图</h1>
+  <p class="subtitle">始于原点，至于无限 — 模块化 · 可扩展 · 可进化</p>
+
+  <div class="diagram">
+
+    <!-- 内核 -->
+    <div style="text-align:center; padding:1rem 0;">
+      <div class="kernel-box">
+        <h3>⚙️ 内核 Kernel</h3>
+        <div class="desc">Express + SQLite | 模块加载器 | 生命周期管理</div>
+        <div style="font-size:0.7rem; color:rgba(255,255,255,0.6); margin-top:0.3rem;">
+          只做三件事：建立服务器 / 连接数据库 / 加载模块
+        </div>
+      </div>
+      <div class="connection-hint">│</div>
+      <div class="connection-hint">▼ 加载并注册</div>
+    </div>
+
+    <!-- 横向维度：同级功能模块 -->
+    <div class="dimension-section">
+      <h2>📐 横向维度 — 同级独立功能</h2>
+      <p style="color:#9090b0; font-size:0.8rem; margin-bottom:1rem;">
+        每个模块功能完整、数据隔离、代码独立。增减一个模块不影响其他模块。
+      </p>
+      <div class="h-modules">
+        <div class="h-module">
+          <div class="icon">🔐</div>
+          <div class="name">Auth</div>
+          <div class="desc">认证 · 注册 · 登录</div>
+        </div>
+        <div class="h-module">
+          <div class="icon">📋</div>
+          <div class="name">Challenge</div>
+          <div class="desc">测试题 · 模板管理</div>
+        </div>
+        <div class="h-module">
+          <div class="icon">📝</div>
+          <div class="name">Submission</div>
+          <div class="desc">提交 · 评价</div>
+        </div>
+        <div class="h-module">
+          <div class="icon">🗳️</div>
+          <div class="name">Vote</div>
+          <div class="desc">投票 · 决策</div>
+        </div>
+        <div class="h-module">
+          <div class="icon">🐚</div>
+          <div class="name">Admin</div>
+          <div class="desc">管理 · 编排 · 监控</div>
+        </div>
+        <div class="h-module" style="border-style:dashed; border-color:#5a4bd8;">
+          <div class="icon">＋</div>
+          <div class="name">下一个模块</div>
+          <div class="desc">随时插入</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 纵向维度：上下级管理 -->
+    <div class="dimension-section">
+      <h2>📐 纵向维度 — 上下级管理与编排</h2>
+      <p style="color:#9090b0; font-size:0.8rem; margin-bottom:1rem;">
+        上级负责编排和调配，不干涉下级内部逻辑。
+      </p>
+      <div class="v-tree">
+        <div class="v-level">
+          <div class="v-node top">
+            <div class="name">👑 Admin</div>
+            <div class="desc">编排层 · 只调不碰</div>
+          </div>
+        </div>
+        <div class="v-line">│ 管理 &amp; 编排</div>
+        <div class="v-level" style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center;">
+          <div class="v-node">
+            <div class="name">🔐 Auth</div>
+            <div class="desc">创建新测试题</div>
+          </div>
+          <div class="v-node">
+            <div class="name">📋 Challenge</div>
+            <div class="desc">审核成员权限</div>
+          </div>
+          <div class="v-node">
+            <div class="name">📝 Submission</div>
+            <div class="desc">查看统计</div>
+          </div>
+          <div class="v-node">
+            <div class="name">🗳️ Vote</div>
+            <div class="desc">触发投票</div>
+          </div>
+        </div>
+        <div class="v-line">│ 下属子模块</div>
+        <div class="v-level">
+          <div class="v-node">
+            <div class="name">📋 Challenge Templates</div>
+            <div class="desc">测试题模板管理</div>
+          </div>
+          <div class="v-node">
+            <div class="name">🗳️ Vote Rules</div>
+            <div class="desc">投票规则配置</div>
+          </div>
+          <div class="v-node">
+            <div class="name">📝 Review</div>
+            <div class="desc">评审规则</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 高维维度：版本进化 -->
+    <div class="dimension-section">
+      <h2>📐 高维维度 — 版本进化（同源分支）</h2>
+      <p style="color:#9090b0; font-size:0.8rem; margin-bottom:1rem;">
+        同一个模块接口，多个版本并存，各自进化。好比生物的同一个属演化出不同的种。
+      </p>
+      <div class="evo-tree">
+        <!-- Vote 模块的进化树 -->
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="evo-source">
+            <div class="name">🗳️ Vote 模块</div>
+            <div class="desc" style="font-size:0.7rem; color:#9090b0;">统一接口定义</div>
+          </div>
+          <div class="evo-arrow">├── 进化分支 ──►</div>
+          <div class="evo-versions">
+            <div class="evo-version active">
+              <div class="name">v1.0 手动投票</div>
+              <div class="desc">当前活跃</div>
+            </div>
+            <div class="evo-version">
+              <div class="name">v2.0 AI辅助</div>
+              <div class="desc">Gemma4评分</div>
+            </div>
+            <div class="evo-version">
+              <div class="name">v3.0 自适应</div>
+              <div class="desc">根据结果调整</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Challenge 模块的进化树 -->
+        <div style="display:flex; flex-direction:column; align-items:center;">
+          <div class="evo-source">
+            <div class="name">📋 Challenge 模块</div>
+            <div class="desc" style="font-size:0.7rem; color:#9090b0;">统一接口定义</div>
+          </div>
+          <div class="evo-arrow">├── 进化分支 ──►</div>
+          <div class="evo-versions">
+            <div class="evo-version active">
+              <div class="name">v1.0 单题模式</div>
+              <div class="desc">一道固定题</div>
+            </div>
+            <div class="evo-version">
+              <div class="name">v2.0 题库模式</div>
+              <div class="desc">多题随机抽</div>
+            </div>
+            <div class="evo-version">
+              <div class="name">v3.0 动态生成</div>
+              <div class="desc">AI出题</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem; background:#1f1f35; border-radius:8px; padding:1rem;">
+        <p style="font-size:0.8rem; color:#9090b0;">
+          <strong style="color:#e8e8f0;">进化机制：</strong>
+          现有模块稳定运行 → 创建新版本分支 → 独立开发部署 → 
+          新旧共存，互相不影响 → 优胜劣汰或长期并存
+        </p>
+      </div>
+    </div>
+
+    <!-- 图例 -->
+    <div class="legend">
+      <h3>图例</h3>
+      <div class="legend-item"><div class="legend-dot purple"></div> 当前版本 / 核心组件</div>
+      <div class="legend-item"><div class="legend-dot green"></div> 活跃使用的版本</div>
+      <div class="legend-item"><div class="legend-dot dashed"></div> 未来待添加模块</div>
+      <div class="legend-item"><span style="color:#2d2d4a;">│ ▼ ├──►</span> 关系与流向</div>
+    </div>
+
+  </div>
+
+  <footer style="margin-top:2rem; color:#9090b0; font-size:0.75rem; text-align:center;">
+    ⚪ 始于原点，至于无限 · 原点社区架构设计 · 2026-05-26
+  </footer>
+</body>
+</html>

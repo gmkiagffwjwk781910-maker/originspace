@@ -1,0 +1,25 @@
+{
+  "name": "origin-community",
+  "version": "0.1.0",
+  "description": "原点社区 - 入门测试系统 MVP",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [],
+  "author": "原点",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "better-sqlite3": "^12.10.0",
+    "connect-sqlite3": "^0.9.16",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.5.2",
+    "express-session": "^1.19.0",
+    "nodemailer": "^8.0.10",
+    "uuid": "^14.0.0"
+  }
+}

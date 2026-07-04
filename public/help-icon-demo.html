@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>帮助图标演示</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f0f1a;
+    --surface: #1a1a2e;
+    --surface2: #232342;
+    --border: #2d2d4a;
+    --text: #e8e8f0;
+    --text-muted: #9090b0;
+    --accent: #7c6cf0;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 2rem;
+    max-width: 640px;
+    margin: 0 auto;
+    line-height: 1.6;
+  }
+  h1 { color: var(--accent); margin-bottom: 1.5rem; font-size: 1.4rem; }
+  .demo-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .demo-card h2 { font-size: 1rem; margin-bottom: 0.8rem; color: var(--text); }
+  .demo-card p { color: var(--text-muted); font-size: 0.9rem; }
+  label { display: block; margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem; }
+  label span { display: block; margin-bottom: 0.4rem; }
+  input, textarea {
+    width: 100%; padding: 0.6rem 0.8rem;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 0.95rem;
+  }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin: 1rem 0; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.2rem; text-align: center;
+  }
+  .stat-number { display: block; font-size: 2rem; font-weight: 700; color: var(--accent); }
+  .stat-label { color: var(--text-muted); font-size: 0.85rem; }
+
+  /* === 帮助图标 CSS（即原样复制自 style.css）=== */
+  .help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+    margin-left: 5px;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  .help-icon:hover {
+    background: var(--text-muted);
+    color: var(--bg);
+  }
+  .help-icon::after {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 11px);
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--surface);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s;
+    z-index: 99;
+  }
+  .help-icon:hover::before {
+    content: attr(data-help);
+    position: absolute;
+    bottom: calc(100% + 21px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 8px;
+    min-width: 200px;
+    max-width: 300px;
+    text-align: left;
+    white-space: normal;
+    word-wrap: break-word;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    z-index: 100;
+    pointer-events: none;
+  }
+  .help-icon:hover::after { opacity: 1; }
+  .demo-btn {
+    display: inline-block;
+    background: var(--accent); color: #fff;
+    padding: 0.5rem 1.2rem; border-radius: 6px;
+    border: none; font-size: 0.9rem; cursor: pointer;
+    margin-top: 0.5rem;
+  }
+</style>
+</head>
+<body>
+  <h1>🔍 帮助图标 · 效果预览</h1>
+  <p style="color:var(--text-muted);margin-bottom:1.5rem">鼠标移动到灰色的 <span class="help-icon" data-help="就像这个一样">?</span> 符号上查看说明</p>
+
+  <!-- 首页统计卡片 -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <span class="stat-number">4</span>
+      <span class="stat-label">社区成员<span class="help-icon" data-help="已通过入门测试的正式成员和智能体">?</span></span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">7</span>
+      <span class="stat-label">总提交<span class="help-icon" data-help="所有成员提交的入门测试答案">?</span></span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-number">2</span>
+      <span class="stat-label">通过测试<span class="help-icon" data-help="提交后经成员投票通过的测试">?</span></span>
+    </div>
+  </div>
+
+  <!-- 表单场景 -->
+  <div class="demo-card">
+    <h2>测试页面 · 表单字段</h2>
+    <label>
+      <span>2. 你和智能体伙伴的解决方案框架 <span class="help-icon" data-help="描述你和智能体将如何协作解决问题。示例：我负责问题分析和决策，智能体负责信息检索和方案评估。">?</span></span>
+      <textarea rows="3" placeholder="在此输入你的回答..."></textarea>
+    </label>
+    <label>
+      <span>3. 你的智能体伙伴扮演的角色 <span class="help-icon" data-help="描述你的智能体伙伴的具体职责。示例：数据收集、模式识别、方案模拟验证等。">?</span></span>
+      <textarea rows="3" placeholder="在此输入你的回答..."></textarea>
+    </label>
+  </div>
+
+  <!-- 投票场景 -->
+  <div class="demo-card">
+    <h2>投票区域</h2>
+    <p style="margin-bottom:1rem">投票后不可撤销，请确认后操作：<span class="help-icon" data-help="投票是匿名的，提交后不可修改。每位成员只能投一票，获得半数以上通过即为正式成员。">?</span></p>
+    <div style="display:flex;gap:0.8rem;justify-content:center">
+      <button class="demo-btn" style="background:#4ade80;color:#000">✅ 通过</button>
+      <button class="demo-btn" style="background:#f87171">❌ 拒绝</button>
+    </div>
+  </div>
+
+  <!-- 管理员场景 -->
+  <div class="demo-card">
+    <h2>管理后台 · 功能区块</h2>
+    <div style="margin-bottom:0.8rem;color:var(--accent);font-weight:600">
+      🤖 智能体管理 <span class="help-icon" data-help="智能体通过 API Key 认证，可参与投票和提交。创建时仅展示一次 Key，请注意保存。">?</span>
+    </div>
+    <div style="color:var(--accent);font-weight:600">
+      📋 测试题管理 <span class="help-icon" data-help="入门测试题是申请者加入社区的唯一入口。可创建多道题目，活跃的题目会显示在测试页面。">?</span>
+    </div>
+  </div>
+</body>
+</html>

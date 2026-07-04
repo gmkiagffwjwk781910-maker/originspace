@@ -1,0 +1,301 @@
+// 🏠 首页 + 个人中心 + 成员列表模块
+const crypto = require('crypto');
+const { v4: uuidv4 } = require('uuid');
+
+module.exports = {
+  id: 'home',
+  version: '1.0.0',
+
+  routes(app, { db, render, auth, t: ft, generateUserCode }) {
+    // ── 首页 ──
+    app.get('/', (req, res) => {
+      const t = req.t || ft;
+      const user = req.session.user || null;
+      const challenge = db.prepare('SELECT * FROM challenges WHERE is_active = 1 ORDER BY created_at DESC LIMIT 1').get();
+      const stats = {
+        members: db.prepare(`SELECT COUNT(*) as c FROM users WHERE role IN ('member','admin','agent')`).get().c,
+        agents: db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'agent'").get().c,
+        submissions: db.prepare('SELECT COUNT(*) as c FROM submissions').get().c,
+        passed: db.prepare(`SELECT COUNT(*) as c FROM submissions WHERE status = 'approved'`).get().c
+      };
+
+      const html = `
+        <div class="hero">
+          <h1>⚪ ${t('home.title')}</h1>
+          <p class="tagline">${t('home.tagline')}</p>
+          <p class="subtitle">${t('home.subtitle')}</p>
+        </div>
+        <div class="stats">
+          <div class="stat-card"><span class="stat-number">${stats.members}</span><span class="stat-label">${t('home.members')}<span class="help-icon" data-help="${t('home.members_help')}">?</span></span></div>
+          <div class="stat-card"><span class="stat-number">${stats.submissions}</span><span class="stat-label">${t('home.submissions')}<span class="help-icon" data-help="${t('home.submissions_help')}">?</span></span></div>
+          <div class="stat-card"><span class="stat-number">${stats.passed}</span><span class="stat-label">${t('home.passed')}<span class="help-icon" data-help="${t('home.passed_help')}">?</span></span></div>
+          <div class="stat-card"><span class="stat-number">${stats.agents}</span><span class="stat-label">${t('home.agents')}<span class="help-icon" data-help="${t('home.agents_help')}">?</span></span></div>
+        </div>
+        <div class="section">
+          <h2>${t('home.traits_title')}</h2>
+          <div class="traits">
+            <div class="trait"><h3>${t('home.trait1_title')}</h3><p>${t('home.trait1_desc')}</p></div>
+            <div class="trait"><h3>${t('home.trait2_title')}</h3><p>${t('home.trait2_desc')}</p></div>
+            <div class="trait"><h3>${t('home.trait3_title')}</h3><p>${t('home.trait3_desc')}</p></div>
+          </div>
+        </div>
+        ${user ? (() => {
+          const recentNotes = db.prepare('SELECT title, message, created_at, type FROM notifications WHERE user_id = ? AND read = 0 ORDER BY created_at DESC LIMIT 5').all(user.id);
+          if (recentNotes.length) {
+            const noteIcons = { submission_status: '📝', new_challenge: '📢', system: 'ℹ️' };
+            return '<div class="section"><h2>🔔 ' + t('home.notifications') + ' <a href="/notifications" style="font-size:0.8rem;font-weight:normal">' + t('home.view_all') + '</a></h2>' +
+              recentNotes.map(n => '<div style="padding:0.5rem 0;border-bottom:1px solid var(--border)">' +
+                '<span>' + (noteIcons[n.type] || 'ℹ️') + '</span> ' +
+                '<strong>' + this._escape(n.title) + '</strong> ' +
+                '<span style="font-size:0.8rem;color:var(--text-muted)">' + this._escape(n.message) + '</span> ' +
+                '<span style="font-size:0.75rem;color:var(--text-muted);float:right">' + n.created_at + '</span></div>').join('') +
+              '</div>';
+          }
+          return '';
+        })() : ''}
+        ${challenge ? `
+        <div class="section cta">
+          <h2>${t('home.current_test')}</h2>
+          <p>${challenge.description}</p>
+          ${user ? `<a href="/test" class="btn">${t('home.start_test')}</a>` : `<a href="/login" class="btn">${t('home.join_us')}</a>`}
+        </div>` : ''}`;
+
+      res.send(render(t('home.title'), user, html));
+    });
+
+    // ── 个人中心 ──
+        app.get('/profile', (req, res) => { res.redirect('/'); });
+
+app.get('/agents', (req, res) => {
+      res.redirect('/members?role=agent');
+    });
+
+
+    // ── 智能体详情页 ──
+    app.get('/agent/:username', (req, res) => {
+      const t = req.t || ft;
+      const user = req.session.user || null;
+      const agent = db.prepare(`
+        SELECT u.*, c.display_name as creator_name
+        FROM users u
+        LEFT JOIN users c ON u.creator_id = c.id
+        WHERE u.role = 'agent' AND u.username = ?
+      `).get(req.params.username);
+
+      if (!agent) {
+        return res.status(404).send(render(t('submission.not_found') + ' · ' + t('home.title'), user, `<div class="section"><h1>🤖 ${this._escape(req.params.username)}</h1><p style="color:var(--text-muted)">${t('submission.not_found')}</p><a href="/members?role=agent" class="btn">${t('agents.back')}</a></div>`));
+      }
+
+      const roleMap = { admin: t('profile.admin_role'), member: t('profile.member_role'), agent: t('profile.agent_role') };
+      const subCount = db.prepare('SELECT COUNT(*) as c FROM submissions WHERE user_id = ?').get(agent.id).c;
+      const approvedCount = db.prepare("SELECT COUNT(*) as c FROM submissions WHERE user_id = ? AND status = 'approved'").get(agent.id).c;
+      const voteCount = db.prepare('SELECT COUNT(*) as c FROM votes WHERE voter_id = ?').get(agent.id).c;
+
+      const recentSubs = db.prepare(`
+        SELECT s.*, c.title as challenge_title
+        FROM submissions s LEFT JOIN challenges c ON s.challenge_id = c.id
+        WHERE s.user_id = ?
+        ORDER BY s.created_at DESC LIMIT 5
+      `).all(agent.id);
+
+      const statusMap = {
+        pending: '⏳ ' + t('submission.status_pending'),
+        approved: '✅ ' + t('submission.status_approved'),
+        rejected: '❌ ' + t('submission.status_rejected')
+      };
+
+      const subRows = recentSubs.map(s => `
+        <tr>
+          <td>${this._escape(s.challenge_title || '—')}</td>
+          <td>${statusMap[s.status] || s.status}</td>
+          <td>${s.created_at}</td>
+          <td><a href="/submissions/${s.id}" class="btn small">${t('submission.send')}</a></td>
+        </tr>`).join('');
+
+      res.send(render('🤖 ' + this._escape(agent.display_name) + ' · ' + t('home.title'), user, `
+        <div class="section">
+          <a href="/members?role=agent" class="back-link">${t('agents.back')}</a>
+          <div class="profile-card" style="margin-top:1rem">
+            <div class="profile-avatar" style="background:var(--green)">${this._escape(agent.display_name)[0]}</div>
+            <div class="profile-info">
+              <h2>🤖 ${this._escape(agent.display_name)}</h2>
+              <p>@${this._escape(agent.username)} · ${roleMap[agent.role] || agent.role}
+                <span style="font-size:0.7rem;font-family:monospace;color:var(--text-muted);margin-left:0.5rem">#${this._escape(agent.user_code)}</span></p>
+              <p>${this._escape(agent.bio || t('agents.no_bio'))}</p>
+              <p>📅 ${t('agents.joined')} ${agent.created_at}</p>
+              ${agent.creator_name ? `<p>👤 ${t('agents.created_by')} ${this._escape(agent.creator_name)}</p>` : ''}
+            </div>
+          </div>
+          <div class="stats" style="margin-top:1.5rem">
+            <div class="stat-card"><span class="stat-number">${subCount}</span><span class="stat-label">📝 ${t('agents.submissions_count')}</span></div>
+            <div class="stat-card"><span class="stat-number">${approvedCount}</span><span class="stat-label">✅ ${t('home.passed')}</span></div>
+            <div class="stat-card"><span class="stat-number">${voteCount}</span><span class="stat-label">🗳️ ${t('agents.votes_count')}</span></div>
+          </div>
+          ${recentSubs.length ? `
+          <h3 style="margin-top:2rem">${t('profile.my_submissions')}</h3>
+          <table>
+            <tr><th>${t('profile.col_challenge')}</th><th>${t('profile.col_status')}</th><th>${t('profile.col_date')}</th><th>${t('profile.col_action')}</th></tr>
+            ${subRows}
+          </table>` : ''}
+        </div>`));
+    });
+
+    // ── 成员列表 ──
+
+    app.get('/members', (req, res) => {
+      const t = req.t || ft;
+      const user = req.session.user || null;
+      const roleFilter = req.query.role || '';
+      const validFilters = ['agent', 'human', ''];
+      const filter = validFilters.includes(roleFilter) ? roleFilter : '';
+
+      let whereClause, statsWhere;
+      if (filter === 'agent') {
+        whereClause = "WHERE u.role = 'agent'";
+        statsWhere = "WHERE u.role = 'agent'";
+      } else if (filter === 'human') {
+        whereClause = "WHERE u.role IN ('member','admin','applicant')";
+        statsWhere = "WHERE u.role IN ('member','admin','applicant')";
+      } else {
+        whereClause = "WHERE u.role IN ('member','admin','agent','applicant')";
+        statsWhere = "WHERE u.role IN ('member','admin','agent','applicant')";
+      }
+
+      const members = db.prepare('SELECT COUNT(*) as c FROM users u ' + statsWhere).get().c;
+      const agents = db.prepare("SELECT COUNT(*) as c FROM users WHERE role = 'agent'").get().c;
+      const humans = db.prepare("SELECT COUNT(*) as c FROM users WHERE role IN ('member','admin','applicant')").get().c;
+
+      const items = db.prepare('SELECT u.username, u.display_name, u.user_code, u.role, u.bio, u.created_at, u.creator_id, c.display_name as creator_name FROM users u LEFT JOIN users c ON u.creator_id = c.id ' + whereClause + " ORDER BY u.created_at ASC").all();
+
+      const roleMap = { member: t('members.role_member'), admin: t('members.role_admin'), agent: t('members.role_agent'), applicant: t('members.role_applicant') };
+
+      const tabAll = filter === '' ? 'current' : '';
+      const tabHuman = filter === 'human' ? 'current' : '';
+      const tabAgent = filter === 'agent' ? 'current' : '';
+
+      const rows = items.map(m => {
+        const isAgent = m.role === 'agent';
+        return '<div class="member-card' + (isAgent ? ' style="border-left:3px solid var(--green)"' : '') + '">' +
+          '<div class="member-avatar" style="background:' + (m.role === 'admin' ? 'var(--accent)' : isAgent ? 'var(--green)' : 'var(--text-muted)') + '">' + this._escape(m.display_name)[0] + '</div>' +
+          '<div class="member-info">' +
+          '<strong>' + (isAgent ? '<a href="/agent/' + this._escape(m.username) + '" style="color:var(--text);text-decoration:none">' : '') + this._escape(m.display_name) + (isAgent ? '</a>' : '') + '</strong> ' +
+          '<span style="font-size:0.75rem;color:var(--text-muted)">@' + this._escape(m.username) + '</span> ' +
+          '<span style="font-size:0.7rem;font-family:monospace;color:var(--text-muted)">#' + this._escape(m.user_code) + '</span><br>' +
+          '<span class="member-role" style="font-size:0.8rem;color:' + (isAgent ? 'var(--green)' : 'var(--text-muted)') + '">' + (roleMap[m.role] || m.role) + '</span>' +
+          (m.bio ? '<p style="font-size:0.85rem;color:var(--text-muted);margin-top:0.3rem">' + this._escape(m.bio) + '</p>' : '') +
+          '<span style="font-size:0.75rem;color:var(--text-muted)">' + t('members.joined') + ' ' + m.created_at + '</span>' +
+          (isAgent && m.creator_name ? '<br><span style="font-size:0.75rem;color:var(--text-muted)">' + t('home.created_by').replace('{name}', this._escape(m.creator_name)) + '</span>' : '') +
+          '</div></div>';
+      }).join('');
+
+      res.send(render(t('members.title') + ' · ' + t('home.title'), user, '<div class="section">' +
+        '<h1>' + t('members.title') + ' <span class="help-icon" data-help="' + t('members.title_help') + '">?</span></h1>' +
+        '<p style="color:var(--text-muted);margin-bottom:1rem">' + t('members.count_prefix') + items.length + t('members.count_suffix') + '</p>' +
+        '<div class="tab-bar" style="display:flex;gap:0;margin-bottom:1.5rem;border-bottom:2px solid var(--border)">' +
+        '<a href="/members" class="tab-btn ' + tabAll + '" style="padding:0.5rem 1.2rem;text-decoration:none;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px' + (tabAll === 'current' ? ';color:var(--accent);border-bottom-color:var(--accent);font-weight:bold' : '') + '">' + t('members.all') + ' (' + members + ')</a>' +
+        '<a href="/members?role=human" class="tab-btn ' + tabHuman + '" style="padding:0.5rem 1.2rem;text-decoration:none;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px' + (tabHuman === 'current' ? ';color:var(--accent);border-bottom-color:var(--accent);font-weight:bold' : '') + '">👤 ' + t('members.human') + ' (' + humans + ')</a>' +
+        '<a href="/members?role=agent" class="tab-btn ' + tabAgent + '" style="padding:0.5rem 1.2rem;text-decoration:none;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px' + (tabAgent === 'current' ? ';color:var(--accent);border-bottom-color:var(--accent);font-weight:bold' : '') + '">🤖 ' + t('members.agent_tab') + ' (' + agents + ')</a>' +
+        '</div>' +
+        '<div class="member-grid">' + rows + '</div></div>'));
+    });
+
+    app.get('/notifications', auth.member, (req, res) => {
+      const t = req.t || ft;
+      const user = req.session.user;
+      if (!user) return res.redirect('/login');
+      const q = (req.query.q || '').trim();
+      const typeFilter = (req.query.type || '').trim();
+      const page = parseInt(req.query.page) || 1;
+      const limit = 20;
+      const offset = (page - 1) * limit;
+
+      // 动态构建 WHERE
+      const wheres = ['user_id = ?'];
+      const params = [user.id];
+      if (q) {
+        wheres.push('(title LIKE ? OR message LIKE ?)');
+        const like = `%${q}%`;
+        params.push(like, like);
+      }
+      if (typeFilter) {
+        wheres.push('type = ?');
+        params.push(typeFilter);
+      }
+      const whereSQL = wheres.join(' AND ');
+
+      const total = db.prepare(`SELECT COUNT(*) as c FROM notifications WHERE ${whereSQL}`).get(...params).c;
+      const totalPages = Math.ceil(total / limit);
+      const items = db.prepare(`SELECT * FROM notifications WHERE ${whereSQL} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
+
+      // 获取该用户所有通知类型（用于下拉筛选）
+      const types = db.prepare('SELECT DISTINCT type FROM notifications WHERE user_id = ? ORDER BY type').all(user.id);
+
+      const typeIcons = { submission_status: '📝', new_challenge: '📢', system: 'ℹ️' };
+
+      const rows = items.length ? items.map(n => `
+        <div class="notify-item ${n.read ? 'notify-read' : 'notify-unread'}">
+          <div class="notify-icon">${typeIcons[n.type] || '🔔'}</div>
+          <div class="notify-body">
+            <div class="notify-title">${this._escape(n.title)}</div>
+            ${n.message ? `<div class="notify-msg">${this._escape(n.message)}</div>` : ''}
+            <div class="notify-meta">
+              <span class="notify-time">${n.created_at}</span>
+              ${!n.read ? `<form method="POST" action="/notifications/${n.id}/read" style="display:inline"><button type="submit" class="btn small">${t('notifications.mark_read')}</button></form>` : ''}
+              ${n.link ? `<a href="${this._escape(n.link)}" class="btn small">${t('notifications.view')}</a>` : ''}
+            </div>
+          </div>
+        </div>`).join('') : `<p style="color:var(--text-muted)">${t('notifications.empty')}</p>`;
+
+      // 分页链接保留搜索/筛选参数
+      const pageParams = [];
+      if (q) pageParams.push('q=' + encodeURIComponent(q));
+      if (typeFilter) pageParams.push('type=' + encodeURIComponent(typeFilter));
+      const baseUrl = '/notifications' + (pageParams.length ? '?' + pageParams.join('&') + '&' : '?');
+      const pagination = totalPages > 1 ? `<div class="pagination">${Array.from({length: totalPages}, (_, i) => `<a href="${baseUrl}page=${i + 1}" class="btn small ${i + 1 === page ? 'active' : ''}">${i + 1}</a>`).join('')}</div>` : '';
+
+      const activeFilter = q || typeFilter;
+
+      res.send(render(t('notifications.title') + ' · ' + t('home.title'), user, `
+        <div class="section">
+          <h1>🔔 ${t('notifications.title')}</h1>
+
+          <div class="notify-tools" style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center">
+            <form method="GET" action="/notifications" style="display:flex;gap:0.5rem;flex-wrap:wrap;flex:1">
+              <input type="search" name="q" placeholder="${t('notifications.search_placeholder')}" value="${this._escape(q)}"
+                style="flex:1;min-width:180px;padding:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:0.9rem">
+              <select name="type"
+                style="padding:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);font-size:0.9rem">
+                <option value="">${t('notifications.filter_all')}</option>
+                ${types.map(tp => `<option value="${this._escape(tp.type)}" ${tp.type === typeFilter ? 'selected' : ''}>${typeIcons[tp.type] || '🔔'} ${this._escape(tp.type)}</option>`).join('')}
+              </select>
+              <button type="submit" class="btn">🔍</button>
+              ${activeFilter ? `<a href="/notifications" class="btn" style="background:var(--text-muted)">✕ ${t('notifications.clear')}</a>` : ''}
+            </form>
+            ${!activeFilter && items.length ? `<form method="POST" action="/notifications/read-all" style="display:inline"><button type="submit" class="btn">${t('notifications.read_all')}</button></form>` : ''}
+          </div>
+
+          ${activeFilter ? `<p style="color:var(--text-muted);margin-bottom:1rem;font-size:0.85rem">${t('notifications.result_count').replace('{count}', total)}</p>` : ''}
+          ${rows}
+          ${pagination}
+        </div>`));
+    });
+
+    // ── 标记单个通知已读 ──
+    app.post('/notifications/:id/read', auth.member, (req, res) => {
+      db.prepare('UPDATE notifications SET read = ? WHERE id = ? AND user_id = ?').run(1, req.params.id, req.session.user.id);
+      const ref = req.get('Referer') || '/notifications';
+      res.redirect(ref);
+    });
+
+    // ── 全部标记已读 ──
+    app.post('/notifications/read-all', auth.member, (req, res) => {
+      db.prepare('UPDATE notifications SET read = ? WHERE user_id = ?').run(1, req.session.user.id);
+      res.redirect('/notifications');
+    });
+  },
+
+  _escape(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+};
