@@ -490,7 +490,7 @@ class Kernel {
     const t = (key) => translate(key, curLang);
     const escape = (s) => { if (!s) return ''; return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); };
         const langOptions = _supportedLangs.map(l =>
-      `<a href="/lang/${l}" class="lang-option${l === curLang ? ' active' : ''}">${t('lang.' + l)}</a>
+      `<a href="/lang/${l}" class="lang-option${l === curLang ? ' active' : ''}" data-lang="${l}">${t('lang.' + l)}</a>
     `).join('');
     const langSwitcher = `<div class="lang-hover" id="lang-switcher">
       <a href="javascript:void(0)" class="lang-btn">${t('nav.lang_switch')}</a>
