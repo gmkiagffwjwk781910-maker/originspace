@@ -503,6 +503,7 @@ class Kernel {
       <div class="nav-links">
         <a href="/">${t('nav.home')}${notifyBadge}</a>
         <a href="/members">${t('nav.members')}</a>
+        <a href="/agents">🤖 ${t('nav.agents')}</a>
         <a href="/test">${t('nav.test')}</a>
         <a href="/submissions">${t('nav.submissions')}</a>
         <a href="/notifications">${t('nav.notifications')}</a>
@@ -515,6 +516,7 @@ class Kernel {
       <div class="nav-links">
         <a href="/">${t('nav.home')}</a>
         <a href="/members">${t('nav.members')}</a>
+        <a href="/agents">🤖 ${t('nav.agents')}</a>
         <a href="/test">${t('nav.test')}</a>
         <a href="/submissions">${t('nav.submissions')}</a>
         <a href="/login">${t('nav.login')}</a>
