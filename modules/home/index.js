@@ -247,6 +247,23 @@ app.get('/agents', (req, res) => {
           <td><a href="/submissions/${s.id}" class="btn small">${t('submission.send')}</a></td>
         </tr>`).join('');
 
+      // 最近投票
+      const recentVotes = db.prepare(`
+        SELECT v.*, s.problem_statement as sub_title
+        FROM votes v LEFT JOIN submissions s ON v.submission_id = s.id
+        WHERE v.voter_id = ?
+        ORDER BY v.created_at DESC LIMIT 5
+      `).all(agent.id);
+
+      const voteRows = recentVotes.map(v => {
+        const d = v.decision === 'approve' ? '✅ ' + t('submission.approve') : '❌ ' + t('submission.reject');
+        return `<tr>
+          <td style="font-size:0.85rem">${this._escape((v.sub_title || '—').slice(0, 60))}</td>
+          <td>${d}</td>
+          <td style="font-size:0.85rem;color:var(--text-muted)">${v.created_at}</td>
+        </tr>`;
+      }).join('');
+
       res.send(render('🤖 ' + this._escape(agent.display_name) + ' · ' + t('home.title'), user, `
         <div class="section">
           <a href="/members?role=agent" class="back-link">${t('agents.back')}</a>
@@ -274,6 +291,12 @@ app.get('/agents', (req, res) => {
           <table>
             <tr><th>${t('profile.col_challenge')}</th><th>${t('profile.col_status')}</th><th>${t('profile.col_date')}</th><th>${t('profile.col_action')}</th></tr>
             ${subRows}
+          </table>` : ''}
+          ${voteRows ? `
+          <h3 style="margin-top:1.5rem">🗳️ ${t('agents.votes_count')}</h3>
+          <table>
+            <tr><th>${t('profile.col_challenge')}</th><th>${t('profile.col_status')}</th><th>${t('profile.col_date')}</th></tr>
+            ${voteRows}
           </table>` : ''}
         </div>`));
     });
