@@ -327,6 +327,32 @@ class Kernel {
       next();
     });
 
+    // ── API 速率限制中间件 ──
+    const rateBuckets = new Map();
+    const RATE_WINDOW = 10 * 1000;   // 10 秒窗口
+    const RATE_MAX = 30;             // 每窗口最多 30 次
+    setInterval(() => {
+      const cutoff = Date.now() - RATE_WINDOW;
+      for (const [key, hits] of rateBuckets) {
+        const filtered = hits.filter(t => Date.now() - t < RATE_WINDOW);
+        if (filtered.length === 0) rateBuckets.delete(key); else rateBuckets.set(key, filtered);
+      }
+    }, 30 * 1000); // 每 30 秒清理过期条目
+    this.app.use((req, res, next) => {
+      if (!req.path.startsWith('/api/')) return next();
+      const key = req.ip || 'unknown';
+      const now = Date.now();
+      if (!rateBuckets.has(key)) rateBuckets.set(key, []);
+      let hits = rateBuckets.get(key);
+      hits = hits.filter(t => now - t < RATE_WINDOW);
+      hits.push(now);
+      rateBuckets.set(key, hits);
+      if (hits.length > RATE_MAX) {
+        return res.status(429).json({ success: false, error: 'rate_limit_exceeded', retry_after: Math.ceil(RATE_WINDOW / 1000) });
+      }
+      next();
+    });
+
     // Load modules
     await this._loadModules();
 
