@@ -157,6 +157,8 @@
     "vote_already": "你已经投了: ",
     "vote_approve_text": "✅ 通过",
     "vote_reject_text": "❌ 拒绝",
+    "threshold_reached": "票数已达阈值，即将自动决定",
+    "threshold_needed": "还需 {{n}} 票达到阈值",
     "vote_records": "投票记录（",
     "vote_records_end": " 票）",
     "no_votes": "暂无投票",

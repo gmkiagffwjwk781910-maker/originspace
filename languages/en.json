@@ -157,6 +157,8 @@
     "vote_already": "You voted: ",
     "vote_approve_text": "✅ Approve",
     "vote_reject_text": "❌ Reject",
+    "threshold_reached": "Threshold reached, auto-decision pending",
+    "threshold_needed": "{{n}} more votes needed",
     "vote_records": "Votes (",
     "vote_records_end": ")",
     "no_votes": "No votes yet",

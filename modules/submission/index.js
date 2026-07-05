@@ -130,7 +130,18 @@ module.exports = {
         FROM votes v JOIN users u ON v.voter_id = u.id WHERE v.submission_id = ?
       `).all(submission.id);
 
-      const myVote = db.prepare('SELECT * FROM votes WHERE submission_id = ? AND voter_id = ?').get(submission.id, req.session.user.id);
+      // 投票进度（加权版）
+      const approveW = db.prepare(`SELECT COALESCE(SUM(weight),0) as c FROM votes WHERE submission_id = ? AND decision = 'approve'`).get(submission.id).c;
+      const rejectW = db.prepare(`SELECT COALESCE(SUM(weight),0) as c FROM votes WHERE submission_id = ? AND decision = 'reject'`).get(submission.id).c;
+      const totalMembers = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role IN ('member','admin')`).get().c;
+      const voteThreshold = Math.max(1, Math.ceil(totalMembers / 2)); // 过半阈值
+      const totalVotes = approveW + rejectW;
+      const progressPct = Math.min(100, Math.round((totalVotes / voteThreshold) * 100));
+
+      // 阈值判断
+      let thresholdReached = totalVotes >= voteThreshold;
+
+      const myVote = req.session.user ? db.prepare('SELECT * FROM votes WHERE submission_id = ? AND voter_id = ?').get(submission.id, req.session.user.id) : null;
 
       const isAdmin = req.session.user && req.session.user.role === 'admin';
 
@@ -172,7 +183,7 @@ module.exports = {
       }
 
       let voteSection = '';
-      if (submission.status === 'pending' && submission.user_id !== req.session.user.id && !myVote) {
+      if (submission.status === 'pending' && req.session.user && submission.user_id !== req.session.user.id && !myVote) {
         voteSection = `<div class="vote-section">
           <p class="vote-hint">${t('submission.vote_hint')}<span class="help-icon" data-help="${this._escape(t('submission.vote_help'))}">?</span></p>
           <form method="POST" action="/submissions/${submission.id}/vote" class="vote-form"
@@ -214,6 +225,17 @@ module.exports = {
             ${tagAdmin}
           </div>
           ${voteSection}
+          ${submission.status === 'pending' ? `
+          <div class="vote-progress" style="margin-top:1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:0.8rem 1rem">
+            <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:var(--text-muted);margin-bottom:0.3rem">
+              <span>👍 ${approveW.toFixed(1)} · 👎 ${rejectW.toFixed(1)}</span>
+              <span>${totalVotes.toFixed(1)} / ${voteThreshold}（${progressPct}%）</span>
+            </div>
+            <div style="height:10px;background:var(--bg);border-radius:5px;overflow:hidden">
+              <div style="height:100%;width:${progressPct}%;background:${thresholdReached ? 'var(--green)' : 'var(--accent)'};border-radius:5px;transition:width 0.3s"></div>
+            </div>
+            ${thresholdReached ? '<p style="font-size:0.8rem;color:var(--green);margin-top:0.4rem">✅ ' + t('submission.threshold_reached') + '</p>' : '<p style="font-size:0.8rem;color:var(--accent);margin-top:0.4rem">⚡ ' + t('submission.threshold_needed', { n: (voteThreshold - totalVotes).toFixed(1) }) + '</p>'}
+          </div>` : ''}
           <div class="votes-list"><h3>${t('submission.vote_records')}${votes.length}${t('submission.vote_records_end')}</h3>${voteDecisions}</div>
         </div>`));
     });
