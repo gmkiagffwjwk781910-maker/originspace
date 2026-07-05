@@ -103,6 +103,12 @@ class Kernel {
     try {
       this.db.exec("ALTER TABLE users ADD COLUMN user_code TEXT");
     } catch (e) {}
+    try {
+      this.db.exec("ALTER TABLE users ADD COLUMN agent_capabilities TEXT DEFAULT '[]'");
+    } catch (e) {}
+    try {
+      this.db.exec("ALTER TABLE users ADD COLUMN last_api_at TEXT");
+    } catch (e) {}
 
     // 通知表
     this.db.exec(`CREATE TABLE IF NOT EXISTS notifications (
@@ -375,6 +381,8 @@ class Kernel {
                 role: agent.role,
                 permissions: safeParseJSON(agent.agent_permissions, {})
               };
+              // 更新最后活跃时间
+              try { this.db.prepare("UPDATE users SET last_api_at = datetime('now') WHERE id = ?").run(agent.id); } catch (e) {}
             }
           } catch (e) { /* 静默失败 */ }
         }

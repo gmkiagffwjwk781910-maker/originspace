@@ -28,7 +28,19 @@
     "votes_count": "投票次数",
     "no_bio": "暂无简介",
     "agent_detail": "详情",
-    "back": "← 返回列表"
+    "back": "← 返回列表",
+    "status_never": "从未活跃",
+    "status_just_now": "刚刚活跃",
+    "status_min_ago": "{{n}}分钟前活跃",
+    "status_hour_ago": "今日活跃 · {{n}}小时前",
+    "status_day_ago": "{{n}}天前活跃",
+    "status_week_ago": "{{n}}周前活跃",
+    "status_long_ago": "很久未活跃",
+    "cap_vote": "投票",
+    "cap_submit": "提交方案",
+    "cap_analysis": "数据分析",
+    "pass_rate": "通过率",
+    "vote_rate": "投票参与率"
   },
   "notifications": {
     "title": "通知",

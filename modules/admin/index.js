@@ -199,7 +199,7 @@ module.exports = {
     // ── 创建智能体 ──
     app.post('/admin/agents/create', auth.admin, (req, res) => {
       const t = req.t || ft;
-      const { username, display_name, bio } = req.body;
+      const { username, display_name, bio, capabilities } = req.body;
       if (!username || !display_name) {
         return res.send(render(t('admin.title'), req.session.user, '<div class="error">' + t('admin.all_required') + '</div>'));
       }
@@ -210,11 +210,17 @@ module.exports = {
       const { raw, hash } = generateAgentKey();
       const perms = defaultAgentPerms();
 
+      // 解析能力标签
+      let caps = [];
+      if (capabilities) {
+        try { caps = JSON.parse(Array.isArray(capabilities) ? JSON.stringify(capabilities) : capabilities); } catch (e) { caps = []; }
+      }
+
       const dummyHash = bcrypt.hashSync(uuidv4(), 10);
             const agentId = uuidv4();
       const acode = generateUserCode();
-      db.prepare(`INSERT INTO users (id, username, passcode_hash, vote_code_hash, display_name, role, agent_key, agent_permissions, bio, user_code)
-        VALUES (?, ?, ?, ?, ?, 'agent', ?, ?, ?, ?)`).run(agentId, username, dummyHash, dummyHash, display_name, hash, perms, bio || '', acode);
+      db.prepare(`INSERT INTO users (id, username, passcode_hash, vote_code_hash, display_name, role, agent_key, agent_permissions, bio, user_code, agent_capabilities)
+        VALUES (?, ?, ?, ?, ?, 'agent', ?, ?, ?, ?, ?)`).run(agentId, username, dummyHash, dummyHash, display_name, hash, perms, bio || '', acode, JSON.stringify(caps));
       req.audit('admin.agent_create', 'agent', agentId, { username });
 
       res.send(render(t('admin.agent_created_title'), req.session.user, `
@@ -231,8 +237,7 @@ module.exports = {
             <p class="form-hint" style="margin-top:1rem">
               <strong>${t('admin.th_username')}：</strong>${escape(username)}<br>
               <strong>${t('admin.th_display')}：</strong>${escape(display_name)}<br>
-              <strong>${t('admin.agent_default_perms')}：</strong>vote, submit, list_submissions
-            </p>
+              <strong>${t('admin.agent_default_perms')}：</strong>vote, submit, list_submissions</p>
           </div>
         </div>`));
     });

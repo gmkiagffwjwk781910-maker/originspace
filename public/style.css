@@ -506,6 +506,16 @@ th { color: var(--text-muted); font-weight: 500; }
 }
 
 /* 通用 */
+.tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.tag-chip {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid;
+  line-height: 1.4;
+}
 .empty { color: var(--text-muted); font-style: italic; }
 .notice { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; margin: 1rem 0; }
 .success-notice { background: rgba(74, 222, 128, 0.1); border: 1px solid var(--green); color: var(--green); border-radius: 6px; padding: 0.6rem 1rem; text-align: center; margin-bottom: 1rem; }

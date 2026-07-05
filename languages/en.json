@@ -28,7 +28,19 @@
     "votes_count": "Votes",
     "no_bio": "No bio",
     "agent_detail": "Details",
-    "back": "← Back to List"
+    "back": "← Back to List",
+    "status_never": "Never active",
+    "status_just_now": "Just now",
+    "status_min_ago": "{{n}}min ago",
+    "status_hour_ago": "Active today · {{n}}h ago",
+    "status_day_ago": "{{n}}d ago",
+    "status_week_ago": "{{n}}w ago",
+    "status_long_ago": "Long ago",
+    "cap_vote": "Voting",
+    "cap_submit": "Submission",
+    "cap_analysis": "Analysis",
+    "pass_rate": "Pass rate",
+    "vote_rate": "Vote rate"
   },
   "notifications": {
     "title": "Notifications",

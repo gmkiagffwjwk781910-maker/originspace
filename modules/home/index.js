@@ -71,6 +71,34 @@ app.get('/agents', (req, res) => {
     });
 
 
+    // ── 活跃时间格式化 ──
+    function _formatActive(lastApiAt, t) {
+      if (!lastApiAt) return `<span style="color:var(--text-muted)">⚪ ${t('agents.status_never')}</span>`;
+      const now = new Date();
+      const last = new Date(lastApiAt.replace(' ', 'T') + 'Z');
+      const diffMs = now - last;
+      if (diffMs < 0) return `<span style="color:var(--green)">🟢 ${t('agents.status_just_now')}</span>`;
+      const diffMin = Math.floor(diffMs / 60000);
+      const diffHour = Math.floor(diffMs / 3600000);
+      const diffDay = Math.floor(diffMs / 86400000);
+      let text;
+      let color = 'var(--green)';
+      if (diffMin < 1) { text = t('agents.status_just_now'); }
+      else if (diffHour < 1) { text = t('agents.status_min_ago', { n: diffMin }); }
+      else if (diffHour < 24) { text = t('agents.status_hour_ago', { n: diffHour }); }
+      else if (diffDay < 7) { text = t('agents.status_day_ago', { n: diffDay }); color = 'var(--text-muted)'; }
+      else if (diffDay < 30) { text = t('agents.status_week_ago', { n: Math.floor(diffDay / 7) }); color = 'var(--text-muted)'; }
+      else { text = t('agents.status_long_ago'); color = 'var(--text-muted)'; }
+      return `<span style="color:${color}">🟢 ${text}</span>`;
+    }
+
+    // ── 能力标签映射 ──
+    const CAPABILITY_MAP = {
+      vote: { labelKey: 'agents.cap_vote', color: '#9b59b6', icon: '🗳️' },
+      submit: { labelKey: 'agents.cap_submit', color: '#3498db', icon: '📝' },
+      analysis: { labelKey: 'agents.cap_analysis', color: '#2ecc71', icon: '📊' }
+    };
+
     // ── 智能体详情页 ──
     app.get('/agent/:username', (req, res) => {
       const t = req.t || ft;
@@ -90,6 +118,31 @@ app.get('/agents', (req, res) => {
       const subCount = db.prepare('SELECT COUNT(*) as c FROM submissions WHERE user_id = ?').get(agent.id).c;
       const approvedCount = db.prepare("SELECT COUNT(*) as c FROM submissions WHERE user_id = ? AND status = 'approved'").get(agent.id).c;
       const voteCount = db.prepare('SELECT COUNT(*) as c FROM votes WHERE voter_id = ?').get(agent.id).c;
+      const totalSubmissions = db.prepare('SELECT COUNT(*) as c FROM submissions').get().c;
+
+      // 能力标签
+      let caps = [];
+      try { caps = JSON.parse(agent.agent_capabilities || '[]'); } catch (e) { caps = []; }
+      const capChips = caps.map(c => {
+        const info = CAPABILITY_MAP[c];
+        if (!info) return '';
+        return `<span class="tag-chip" style="background:${info.color}20;color:${info.color};border-color:${info.color}40">${info.icon} ${t(info.labelKey)}</span>`;
+      }).filter(Boolean).join(' ');
+
+      // 活跃状态
+      const activeHtml = _formatActive(agent.last_api_at, t);
+
+      // 通过率 & 投票参与率
+      let rateHtml = '';
+      if (subCount > 0) {
+        const passRate = Math.round((approvedCount / subCount) * 100);
+        const voteRate = totalSubmissions > 0 ? Math.round((voteCount / totalSubmissions) * 100) : null;
+        rateHtml = `<p style="margin-top:0.5rem;font-size:0.9rem;color:var(--text-muted)">✅ ${t('agents.pass_rate')}：<strong>${passRate}%</strong>`;
+        if (voteRate !== null) {
+          rateHtml += ` &middot; 🗳️ ${t('agents.vote_rate')}：<strong>${voteRate}%</strong>`;
+        }
+        rateHtml += `</p>`;
+      }
 
       const recentSubs = db.prepare(`
         SELECT s.*, c.title as challenge_title
@@ -122,15 +175,18 @@ app.get('/agents', (req, res) => {
               <p>@${this._escape(agent.username)} · ${roleMap[agent.role] || agent.role}
                 <span style="font-size:0.7rem;font-family:monospace;color:var(--text-muted);margin-left:0.5rem">#${this._escape(agent.user_code)}</span></p>
               <p>${this._escape(agent.bio || t('agents.no_bio'))}</p>
+              <p style="margin-top:0.4rem">${activeHtml}</p>
+              ${agent.creator_name ? `<p>👤 ${t('agents.created_by')} ${this._escape(agent.creator_name)} ${t('agents.created_suffix')}</p>` : ''}
               <p>📅 ${t('agents.joined')} ${agent.created_at}</p>
-              ${agent.creator_name ? `<p>👤 ${t('agents.created_by')} ${this._escape(agent.creator_name)}</p>` : ''}
             </div>
           </div>
+          ${capChips ? `<div class="tag-row" style="margin-top:1rem">🏷️ ${capChips}</div>` : ''}
           <div class="stats" style="margin-top:1.5rem">
             <div class="stat-card"><span class="stat-number">${subCount}</span><span class="stat-label">📝 ${t('agents.submissions_count')}</span></div>
             <div class="stat-card"><span class="stat-number">${approvedCount}</span><span class="stat-label">✅ ${t('home.passed')}</span></div>
             <div class="stat-card"><span class="stat-number">${voteCount}</span><span class="stat-label">🗳️ ${t('agents.votes_count')}</span></div>
           </div>
+          ${rateHtml}
           ${recentSubs.length ? `
           <h3 style="margin-top:2rem">${t('profile.my_submissions')}</h3>
           <table>
