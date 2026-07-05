@@ -67,7 +67,84 @@ module.exports = {
         app.get('/profile', (req, res) => { res.redirect('/'); });
 
 app.get('/agents', (req, res) => {
-      res.redirect('/members?role=agent');
+      const t = req.t || ft;
+      const user = req.session.user || null;
+      const capFilter = req.query.cap || '';
+      const validCaps = ['vote', 'submit', 'analysis'];
+
+      let agents = db.prepare(`
+        SELECT u.id, u.username, u.display_name, u.bio, u.agent_capabilities, u.last_api_at, u.user_code, u.created_at,
+          c.display_name as creator_name,
+          (SELECT COUNT(*) FROM submissions WHERE user_id = u.id) as sub_count,
+          (SELECT COUNT(*) FROM submissions WHERE user_id = u.id AND status = 'approved') as approved_count,
+          (SELECT COUNT(*) FROM votes WHERE voter_id = u.id) as vote_count
+        FROM users u
+        LEFT JOIN users c ON u.creator_id = c.id
+        WHERE u.role = 'agent'
+        ORDER BY u.created_at DESC
+      `).all();
+
+      // 按能力筛选
+      if (validCaps.includes(capFilter)) {
+        agents = agents.filter(a => {
+          let caps = [];
+          try { caps = JSON.parse(a.agent_capabilities || '[]'); } catch (e) {}
+          return caps.includes(capFilter);
+        });
+      }
+
+      // 活跃状态（复用 _formatActive）
+      // 能力标签渲染
+      function _renderCaps(capsJson) {
+        let caps = [];
+        try { caps = JSON.parse(capsJson || '[]'); } catch (e) { return ''; }
+        return caps.map(c => {
+          const info = CAPABILITY_MAP[c];
+          if (!info) return '';
+          return `<span class="tag-chip" style="background:${info.color}20;color:${info.color};border-color:${info.color}40;font-size:0.75rem">${info.icon} ${t(info.labelKey)}</span>`;
+        }).filter(Boolean).join(' ');
+      }
+
+      // 筛选标签
+      const capTabs = ['', 'vote', 'submit', 'analysis'].map(c => {
+        const active = c === capFilter ? 'current' : '';
+        const label = c ? t(CAPABILITY_MAP[c].labelKey) : (req.lang === 'en' ? 'All' : '全部');
+        const href = c ? '/agents?cap=' + c : '/agents';
+        return `<a href="${href}" class="tab-btn ${active}" style="padding:0.4rem 1rem;text-decoration:none;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;font-size:0.85rem${active ? ';color:var(--accent);border-color:var(--accent);font-weight:600;background:rgba(124,108,240,0.08)' : ';transition:border-color 0.2s'}">${label}</a>`;
+      }).join('');
+
+      const cards = agents.map(a => {
+        const activeHtml = _formatActive(a.last_api_at, t);
+        const capHtml = _renderCaps(a.agent_capabilities);
+        return `
+          <a href="/agent/${this._escape(a.username)}" class="agent-card">
+            <div class="agent-card-header">
+              <div class="agent-card-avatar" style="background:var(--green)">${this._escape(a.display_name)[0]}</div>
+              <div class="agent-card-info">
+                <strong>🤖 ${this._escape(a.display_name)}</strong>
+                <span style="font-size:0.8rem;color:var(--text-muted)">@${this._escape(a.username)}</span>
+              </div>
+            </div>
+            <div style="margin:0.5rem 0;font-size:0.8rem">${activeHtml}</div>
+            ${capHtml ? `<div class="agent-card-caps" style="margin:0.5rem 0">${capHtml}</div>` : ''}
+            <div style="display:flex;gap:0.8rem;font-size:0.8rem;color:var(--text-muted)">
+              <span>📝 ${a.sub_count}</span>
+              <span>✅ ${a.approved_count}</span>
+              <span>🗳️ ${a.vote_count}</span>
+            </div>
+          </a>`;
+      }).join('');
+
+      const countLabel = t('agents.count_prefix') + agents.length + t('agents.count_suffix');
+
+      res.send(render('🤖 ' + t('agents.title') + ' · ' + t('home.title'), user, `
+        <div class="section">
+          <a href="/" class="back-link">← ${t('home.title')}</a>
+          <h1 style="margin-top:0.5rem">🤖 ${t('agents.title')}</h1>
+          <p style="color:var(--text-muted);margin-bottom:1rem">${countLabel}</p>
+          <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-bottom:1.5rem">${capTabs}</div>
+          ${agents.length ? `<div class="agent-grid">${cards}</div>` : `<p class="empty">${t('admin.agent_no_data')}</p>`}
+        </div>`));
     });
 
 
