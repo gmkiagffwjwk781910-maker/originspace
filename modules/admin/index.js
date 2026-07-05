@@ -384,6 +384,21 @@ module.exports = {
       const totalChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges').get().c;
       const activeChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges WHERE is_active = 1').get().c;
 
+      // 智能体活跃统计
+      const activeToday = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-1 day')`).get().c;
+      const activeWeek = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-7 days')`).get().c;
+      const inactiveAgents = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND (last_api_at IS NULL OR last_api_at < datetime('now', '-7 days'))`).get().c;
+
+      // 能力分布
+      const allCapRows = db.prepare(`SELECT agent_capabilities FROM users WHERE role = 'agent' AND agent_capabilities IS NOT NULL AND agent_capabilities != '[]'`).all();
+      const capCounts = { vote: 0, submit: 0, analysis: 0 };
+      for (const row of allCapRows) {
+        try {
+          const caps = JSON.parse(row.agent_capabilities);
+          if (Array.isArray(caps)) caps.forEach(c => { if (capCounts[c] !== undefined) capCounts[c]++; });
+        } catch (e) {}
+      }
+
       // 最近活动（合并用户注册、提交、投票、智能体创建）
       const recentUsers = db.prepare("SELECT 'user' as type, username as label, created_at FROM users ORDER BY created_at DESC LIMIT 5").all();
       const recentSubs = db.prepare("SELECT 'submission' as type, problem_statement as label, created_at FROM submissions ORDER BY created_at DESC LIMIT 5").all();
@@ -469,7 +484,7 @@ module.exports = {
             <div style="${cardStyle}">
               <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.25rem">${t('admin.stat_agents')}</div>
               <div style="font-size:2rem;font-weight:700">${totalAgents}</div>
-              <div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.stat_subtitle_agents')}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted)">${activeToday}${t('admin.stat_active_today')} · ${activeWeek}${t('admin.stat_active_week')}</div>
             </div>
           </div>
 
@@ -481,6 +496,25 @@ module.exports = {
             <div style="flex:1;min-width:280px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">
               <h3 style="margin:0 0 0.75rem;font-size:1rem">${t('admin.chart_status_title')}</h3>
               ${statusBars || '<p style="color:var(--text-muted);font-size:0.85rem">—</p>'}
+            </div>
+          </div>
+
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+            <div style="flex:1;min-width:280px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">
+              <h3 style="margin:0 0 0.75rem;font-size:1rem">🤖 ${t('admin.stat_agent_activity')}</h3>
+              <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:var(--green)">${activeToday}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.stat_active_today_label')}</div></div>
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${activeWeek}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.stat_active_week_label')}</div></div>
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:var(--text-muted)">${inactiveAgents}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.stat_inactive_label')}</div></div>
+              </div>
+            </div>
+            <div style="flex:1;min-width:280px;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">
+              <h3 style="margin:0 0 0.75rem;font-size:1rem">🏷️ ${t('admin.stat_cap_dist')}</h3>
+              <div style="display:flex;gap:1rem;flex-wrap:wrap">
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#9b59b6">${capCounts.vote}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_vote')}</div></div>
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#3498db">${capCounts.submit}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_submit')}</div></div>
+                <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#2ecc71">${capCounts.analysis}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_analysis')}</div></div>
+              </div>
             </div>
           </div>
 
