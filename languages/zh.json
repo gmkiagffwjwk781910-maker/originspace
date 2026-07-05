@@ -346,6 +346,7 @@
     "tag_no_data": "暂无标签",
     "readonly_hint": "操作需通过提案/API",
     "agent_readonly_hint": "智能体管理需通过 API 操作（创建/Key/权限）",
+    "agent_cap_label": "能力标签",
     "batch_notify_readonly_hint": "批量通知需通过 API 发送"
   },
   "proposals": {

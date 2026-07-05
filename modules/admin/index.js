@@ -85,6 +85,20 @@ module.exports = {
             <h3>${t('admin.agent_list_title')}</h3>
             <p class="form-hint" style="margin-bottom:0.5rem">${t('admin.agent_readonly_hint')}</p>
             ${agentRows.length ? `<table><tr><th>${t('admin.agent_th_username')}</th><th>${t('admin.agent_th_display')}</th><th>${t('admin.agent_th_key')}</th><th>${t('admin.agent_th_perms')}</th><th>${t('admin.agent_th_date')}</th></tr>${agentRows}</table>` : `<p>${t('admin.agent_no_data')}</p>`}
+            <form method="POST" action="/admin/agents/create" class="admin-form" style="margin-top:1rem">
+              <h3 style="margin-bottom:0.5rem">${t('admin.agent_create_title')}</h3>
+              <label><span>${t('admin.th_username')}</span><input type="text" name="username" placeholder="${t('admin.agent_username_placeholder')}" required></label>
+              <label><span>${t('admin.th_display')}</span><input type="text" name="display_name" placeholder="${t('admin.agent_display_placeholder')}" required></label>
+              <label><span>${t('admin.agent_bio_label')}</span><input type="text" name="bio" placeholder="${t('admin.agent_bio_placeholder')}"></label>
+              <label style="margin-bottom:0.5rem"><span>🏷️ ${t('admin.agent_cap_label')}</span>
+                <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.3rem">
+                  <label class="cap-check" style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;background:var(--surface2);padding:0.3rem 0.7rem;border-radius:6px"><input type="checkbox" name="capabilities" value="vote"> 🗳️ ${t('agents.cap_vote')}</label>
+                  <label class="cap-check" style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;background:var(--surface2);padding:0.3rem 0.7rem;border-radius:6px"><input type="checkbox" name="capabilities" value="submit"> 📝 ${t('agents.cap_submit')}</label>
+                  <label class="cap-check" style="display:flex;align-items:center;gap:0.4rem;cursor:pointer;font-size:0.9rem;background:var(--surface2);padding:0.3rem 0.7rem;border-radius:6px"><input type="checkbox" name="capabilities" value="analysis"> 📊 ${t('agents.cap_analysis')}</label>
+                </div>
+              </label>
+              <button type="submit" class="btn">${t('admin.agent_create_btn')}</button>
+            </form>
           </div>
           <div class="admin-section">
             <h2>${t('admin.challenge_mgmt')} <span class="help-icon" data-help="${escape(t('admin.challenge_mgmt_help'))}">?</span></h2>
@@ -213,7 +227,7 @@ module.exports = {
       // 解析能力标签
       let caps = [];
       if (capabilities) {
-        try { caps = JSON.parse(Array.isArray(capabilities) ? JSON.stringify(capabilities) : capabilities); } catch (e) { caps = []; }
+        caps = Array.isArray(capabilities) ? capabilities : [capabilities];
       }
 
       const dummyHash = bcrypt.hashSync(uuidv4(), 10);

@@ -334,6 +334,7 @@
     "batch_notify_empty": "No matching users found",
     "batch_notify_title_placeholder": "System Announcement",
     "batch_notify_msg_placeholder": "Enter your message...",
+    "agent_cap_label": "Capabilities",
     "tag_mgmt": "🏷️ Tag Management",
     "tag_mgmt_help": "Tags are used to categorize and filter submissions. Create tags here, then assign them to submissions on the detail page.",
     "tag_name_label": "Name",
