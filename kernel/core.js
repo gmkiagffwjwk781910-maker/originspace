@@ -109,6 +109,9 @@ class Kernel {
     try {
       this.db.exec("ALTER TABLE users ADD COLUMN last_api_at TEXT");
     } catch (e) {}
+    try {
+      this.db.exec("ALTER TABLE votes ADD COLUMN weight REAL NOT NULL DEFAULT 1.0");
+    } catch (e) {}
 
     // 通知表
     this.db.exec(`CREATE TABLE IF NOT EXISTS notifications (

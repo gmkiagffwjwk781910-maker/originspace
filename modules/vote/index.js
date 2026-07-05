@@ -42,13 +42,17 @@ module.exports = {
         return res.send(render(t('submission.vote_title'), req.session.user, '<div class="error">' + t('vote.already_voted') + '</div>'));
       }
 
-      db.prepare(`INSERT INTO votes (id, submission_id, voter_id, decision)
-        VALUES (?, ?, ?, ?)`).run(uuidv4(), submission.id, req.session.user.id, decision);
-      req.audit('vote.cast', 'submission', submission.id, { decision });
+      const voterRole = db.prepare('SELECT role FROM users WHERE id = ?').get(req.session.user.id).role;
+      const isAgentVoter = voterRole === 'agent';
+      const weight = isAgentVoter ? 0.5 : 1.0;
 
-      // 检查投票阈值 — 自动决策
-      const approve = db.prepare(`SELECT COUNT(*) as c FROM votes WHERE submission_id = ? AND decision = 'approve'`).get(submission.id).c;
-      const reject = db.prepare(`SELECT COUNT(*) as c FROM votes WHERE submission_id = ? AND decision = 'reject'`).get(submission.id).c;
+      db.prepare(`INSERT INTO votes (id, submission_id, voter_id, decision, weight)
+        VALUES (?, ?, ?, ?, ?)`).run(uuidv4(), submission.id, req.session.user.id, decision, weight);
+      req.audit('vote.cast', 'submission', submission.id, { decision, is_agent: isAgentVoter, weight });
+
+      // 检查投票阈值 — 自动决策（智能体权重 0.5）
+      const approve = db.prepare(`SELECT COALESCE(SUM(weight),0) as c FROM votes WHERE submission_id = ? AND decision = 'approve'`).get(submission.id).c;
+      const reject = db.prepare(`SELECT COALESCE(SUM(weight),0) as c FROM votes WHERE submission_id = ? AND decision = 'reject'`).get(submission.id).c;
       const totalMembers = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role IN ('member','admin')`).get().c;
       const threshold = Math.max(1, Math.ceil(totalMembers / 2));
 
@@ -174,9 +178,10 @@ module.exports = {
       const existingVote = db.prepare('SELECT id FROM votes WHERE submission_id = ? AND voter_id = ?').get(req.params.submissionId, voterId);
       if (existingVote) return res.status(409).json({ success: false, error: 'already_voted' });
 
-      db.prepare(`INSERT INTO votes (id, submission_id, voter_id, decision)
-        VALUES (?, ?, ?, ?)`).run(uuidv4(), submission.id, voterId, decision);
-      req.audit('vote.cast', 'submission', submission.id, { decision, is_agent: isAgent });
+      const weight = isAgent ? 0.5 : 1.0;
+      db.prepare(`INSERT INTO votes (id, submission_id, voter_id, decision, weight)
+        VALUES (?, ?, ?, ?, ?)`).run(uuidv4(), submission.id, voterId, decision, weight);
+      req.audit('vote.cast', 'submission', submission.id, { decision, is_agent: isAgent, weight });
       res.json({ success: true, voter: { agent: isAgent } });
     });
   }

@@ -195,6 +195,7 @@ app.get('/agents', (req, res) => {
       const subCount = db.prepare('SELECT COUNT(*) as c FROM submissions WHERE user_id = ?').get(agent.id).c;
       const approvedCount = db.prepare("SELECT COUNT(*) as c FROM submissions WHERE user_id = ? AND status = 'approved'").get(agent.id).c;
       const voteCount = db.prepare('SELECT COUNT(*) as c FROM votes WHERE voter_id = ?').get(agent.id).c;
+      const votePower = db.prepare('SELECT COALESCE(SUM(weight),0) as c FROM votes WHERE voter_id = ?').get(agent.id).c;
       const totalSubmissions = db.prepare('SELECT COUNT(*) as c FROM submissions').get().c;
 
       // 能力标签
@@ -216,7 +217,11 @@ app.get('/agents', (req, res) => {
         const voteRate = totalSubmissions > 0 ? Math.round((voteCount / totalSubmissions) * 100) : null;
         rateHtml = `<p style="margin-top:0.5rem;font-size:0.9rem;color:var(--text-muted)">✅ ${t('agents.pass_rate')}：<strong>${passRate}%</strong>`;
         if (voteRate !== null) {
+          const isAgentUser = agent.role === 'agent';
           rateHtml += ` &middot; 🗳️ ${t('agents.vote_rate')}：<strong>${voteRate}%</strong>`;
+          if (isAgentUser && votePower > 0) {
+            rateHtml += ` (⚡ ${votePower.toFixed(1)})`;
+          }
         }
         rateHtml += `</p>`;
       }
