@@ -385,6 +385,40 @@ module.exports = {
       const totalChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges').get().c;
       const activeChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges WHERE is_active = 1').get().c;
 
+      // ── 新增统计 ──
+
+      // 提交趋势（最近 7 天）
+      const subTrend = db.prepare(`SELECT date(created_at) as day, COUNT(*) as count
+        FROM submissions WHERE created_at >= datetime('now', '-7 days')
+        GROUP BY date(created_at) ORDER BY day`).all();
+
+      // 提案统计
+      const propCount = db.prepare('SELECT COUNT(*) as c FROM proposals').get().c;
+      const propStatusDist = db.prepare('SELECT status, COUNT(*) as count FROM proposals GROUP BY status').all();
+      const brakeCount = db.prepare("SELECT COUNT(*) as c FROM proposals WHERE type = 'emergency_brake'").get().c;
+      const activeProps = propStatusDist.find(s => s.status === 'active')?.count || 0;
+      const passedProps = propStatusDist.find(s => s.status === 'passed')?.count || 0;
+      const rejectedProps = propStatusDist.find(s => s.status === 'rejected')?.count || 0;
+      const expiredProps = propStatusDist.find(s => s.status === 'expired')?.count || 0;
+
+      // 投票统计
+      const totalApproves = db.prepare("SELECT COUNT(*) as c FROM votes WHERE decision = 'approve'").get().c;
+      const totalRejects = db.prepare("SELECT COUNT(*) as c FROM votes WHERE decision = 'reject'").get().c;
+      // 人 vs 智能体投票
+      const voteByType = db.prepare(`SELECT u.role, COUNT(*) as count FROM votes v
+        JOIN users u ON v.voter_id = u.id GROUP BY u.role`).all();
+      const agentVotes = voteByType.find(r => r.role === 'agent')?.count || 0;
+      const humanVotes = totalVotes - agentVotes;
+      // 提交：人 vs 智能体
+      const subByType = db.prepare(`SELECT u.role, COUNT(*) as count FROM submissions s
+        JOIN users u ON s.user_id = u.id GROUP BY u.role`).all();
+      const agentSubs = subByType.find(r => r.role === 'agent')?.count || 0;
+      const humanSubs = totalSubs - agentSubs;
+
+      // 活跃用户统计（基于 audit_logs）
+      const active24h = db.prepare("SELECT COUNT(DISTINCT actor_id) as c FROM audit_logs WHERE created_at >= datetime('now', '-1 day')").get().c;
+      const active7d = db.prepare("SELECT COUNT(DISTINCT actor_id) as c FROM audit_logs WHERE created_at >= datetime('now', '-7 days')").get().c;
+
       // 智能体活跃统计
       const activeToday = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-1 day')`).get().c;
       const activeWeek = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-7 days')`).get().c;
@@ -516,6 +550,100 @@ module.exports = {
                 <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#9b59b6">${capCounts.vote}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_vote')}</div></div>
                 <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#3498db">${capCounts.submit}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_submit')}</div></div>
                 <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.5rem;font-weight:700;color:#2ecc71">${capCounts.analysis}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('agents.cap_analysis')}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 新增：两列布局 -->
+          <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem">
+            <!-- 左列：提交趋势 + 提案统计 -->
+            <div style="flex:1.8;min-width:300px">
+              <!-- 提交趋势 7 天 -->
+              <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
+                <h3 style="margin:0 0 0.75rem;font-size:1rem">📈 ${t('admin.trend_submissions')}</h3>
+                ${subTrend.length
+                  ? `<div style="display:flex;gap:2px;align-items:flex-end;height:60px;margin-bottom:0.5rem">
+                      ${subTrend.map(d => {
+                        const maxCount = Math.max(...subTrend.map(x => x.count), 1);
+                        const h = Math.round(d.count / maxCount * 50);
+                        const dayLabel = d.day.slice(5); // MM-DD
+                        return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+                          <span style="font-size:0.75rem;font-weight:600">${d.count}</span>
+                          <div style="width:100%;height:${h}px;background:var(--accent);border-radius:3px 3px 0 0;min-height:${d.count ? '4px' : '0'}"></div>
+                          <span style="font-size:0.65rem;color:var(--text-muted)">${dayLabel}</span>
+                        </div>`;
+                      }).join('')}
+                    </div>`
+                  : `<p style="color:var(--text-muted);font-size:0.85rem">${t('admin.no_data')}</p>`}
+              </div>
+              <!-- 提案统计 -->
+              <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">
+                <h3 style="margin:0 0 0.75rem;font-size:1rem">🗳️ ${t('admin.stat_proposals')}</h3>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700">${propCount}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.prop_total')}</div></div>
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:#f39c12">${activeProps}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.prop_active')}</div></div>
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:#2ecc71">${passedProps}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.prop_passed')}</div></div>
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:#e74c3c">${rejectedProps}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.prop_rejected')}</div></div>
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:var(--text-muted)">${expiredProps}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.prop_expired')}</div></div>
+                </div>
+                <div style="font-size:0.8rem;color:var(--text-muted);margin-top:0.5rem">🚨 ${t('admin.prop_brakes')}: ${brakeCount}</div>
+              </div>
+            </div>
+            <!-- 右列：人 vs 智能体 + 活跃用户 + 投票统计 -->
+            <div style="flex:1;min-width:250px">
+              <!-- 人 vs 智能体 -->
+              <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
+                <h3 style="margin:0 0 0.75rem;font-size:1rem">🤝 ${t('admin.stat_human_vs_agent')}</h3>
+                <div style="margin-bottom:0.5rem">
+                  <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px">
+                    <span>📝 ${t('admin.stat_submissions')}</span>
+                    <span style="color:var(--text-muted)">${humanSubs} / ${agentSubs}</span>
+                  </div>
+                  <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex">
+                    <div style="height:100%;background:#3498db;width:${totalSubs ? Math.round(humanSubs / totalSubs * 100) : 0}%"></div>
+                    <div style="height:100%;background:#9b59b6;width:${totalSubs ? Math.round(agentSubs / totalSubs * 100) : 0}%"></div>
+                  </div>
+                  <div style="font-size:0.7rem;color:var(--text-muted);display:flex;gap:0.75rem;margin-top:2px">
+                    <span>👤 ${t('admin.stat_human')}: ${humanSubs}</span>
+                    <span>🤖 ${t('admin.stat_agent')}: ${agentSubs}</span>
+                  </div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:0.85rem;margin-bottom:2px">
+                    <span>🗳️ ${t('admin.stat_votes')}</span>
+                    <span style="color:var(--text-muted)">${humanVotes} / ${agentVotes}</span>
+                  </div>
+                  <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex">
+                    <div style="height:100%;background:#3498db;width:${totalVotes ? Math.round(humanVotes / totalVotes * 100) : 0}%"></div>
+                    <div style="height:100%;background:#9b59b6;width:${totalVotes ? Math.round(agentVotes / totalVotes * 100) : 0}%"></div>
+                  </div>
+                  <div style="font-size:0.7rem;color:var(--text-muted);display:flex;gap:0.75rem;margin-top:2px">
+                    <span>👤 ${t('admin.stat_human')}: ${humanVotes}</span>
+                    <span>🤖 ${t('admin.stat_agent')}: ${agentVotes}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- 活跃用户 -->
+              <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-bottom:1rem">
+                <h3 style="margin:0 0 0.75rem;font-size:1rem">🔥 ${t('admin.stat_active_users')}</h3>
+                <div style="display:flex;gap:1rem">
+                  <div style="text-align:center;flex:1"><div style="font-size:1.5rem;font-weight:700;color:var(--green)">${active24h}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.active_24h')}</div></div>
+                  <div style="text-align:center;flex:1"><div style="font-size:1.5rem;font-weight:700;color:var(--accent)">${active7d}</div><div style="font-size:0.75rem;color:var(--text-muted)">${t('admin.active_7d')}</div></div>
+                </div>
+              </div>
+              <!-- 投票统计 -->
+              <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:1rem">
+                <h3 style="margin:0 0 0.75rem;font-size:1rem">⚖️ ${t('admin.stat_vote_breakdown')}</h3>
+                <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:#2ecc71">${totalApproves}</div><div style="font-size:0.75rem;color:var(--text-muted)">👍 ${t('admin.vote_approve')}</div></div>
+                  <div style="text-align:center;flex:1;min-width:60px"><div style="font-size:1.3rem;font-weight:700;color:#e74c3c">${totalRejects}</div><div style="font-size:0.75rem;color:var(--text-muted)">👎 ${t('admin.vote_reject')}</div></div>
+                </div>
+                ${totalVotes ? `<div style="margin-top:0.5rem">
+                  <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden;display:flex">
+                    <div style="height:100%;background:#2ecc71;width:${Math.round(totalApproves / totalVotes * 100)}%"></div>
+                    <div style="height:100%;background:#e74c3c;width:${Math.round(totalRejects / totalVotes * 100)}%"></div>
+                  </div>
+                </div>` : ''}
               </div>
             </div>
           </div>
