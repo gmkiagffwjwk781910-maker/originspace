@@ -93,25 +93,30 @@ class Kernel {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     )`);
 
-    // email_verified 列（密码登录时期遗留，保留兼容）
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0");
-    } catch (e) {}
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN creator_id TEXT REFERENCES users(id)");
-    } catch (e) {}
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN user_code TEXT");
-    } catch (e) {}
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN agent_capabilities TEXT DEFAULT '[]'");
-    } catch (e) {}
-    try {
-      this.db.exec("ALTER TABLE users ADD COLUMN last_api_at TEXT");
-    } catch (e) {}
-    try {
-      this.db.exec("ALTER TABLE votes ADD COLUMN weight REAL NOT NULL DEFAULT 1.0");
-    } catch (e) {}
+    // Schema 迁移
+    const migrate = require('./migrate');
+    // 预置遗留迁移记录（列已通过旧的 try/catch 存在时跳过）
+    const hasLegacyCols = (() => {
+      try {
+        const col = this.db.prepare("SELECT name FROM pragma_table_info('users') WHERE name = 'email_verified'").get();
+        return !!col;
+      } catch (e) { return false; }
+    })();
+    if (hasLegacyCols) {
+      try {
+        const existing = this.db.prepare("SELECT status FROM _migrations WHERE name = '001-legacy-alters'").get();
+        if (!existing) {
+          this.db.prepare(`INSERT INTO _migrations (name, description, hash, status, applied_at)
+            VALUES ('001-legacy-alters', '历史遗留列变更', 'legacy-premigrated', 'ok', datetime('now'))`).run();
+        } else if (existing.status === 'failed') {
+          this.db.prepare("UPDATE _migrations SET status = 'ok', error_msg = '', hash = 'legacy-premigrated' WHERE name = '001-legacy-alters'").run();
+        }
+        console.log('  ↳ 遗留列已存在，迁移 001 标记为已应用');
+      } catch (e) {
+        console.log('  ↳ 遗留迁移标记跳过（已有记录）');
+      }
+    }
+    migrate.runPending(this.db, console.log);
 
     // 通知表
     this.db.exec(`CREATE TABLE IF NOT EXISTS notifications (

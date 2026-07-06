@@ -670,6 +670,19 @@ module.exports = {
       res.json({ rows, total, page, pages });
     });
 
+    // ── Schema 迁移 API ──
+    app.get('/api/admin/migrations', auth.admin, (req, res) => {
+      const migrate = require('../../kernel/migrate');
+      const list = migrate.list(db);
+      res.json({ migrations: list });
+    });
+
+    app.post('/api/admin/migrations/run', auth.admin, (req, res) => {
+      const migrate = require('../../kernel/migrate');
+      const results = migrate.runPending(db);
+      res.json({ ok: true, results });
+    });
+
     // ── API ──
     app.get('/api/admin/users', auth.admin, (req, res) => {
       const users = db.prepare('SELECT id, username, display_name, role, created_at FROM users ORDER BY created_at DESC').all();
