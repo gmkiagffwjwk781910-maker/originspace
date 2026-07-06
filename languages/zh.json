@@ -41,7 +41,8 @@
     "cap_submit": "提交方案",
     "cap_analysis": "数据分析",
     "pass_rate": "通过率",
-    "vote_rate": "投票参与率"
+    "vote_rate": "投票参与率",
+    "log_title": "操作日志"
   },
   "notifications": {
     "title": "通知",
