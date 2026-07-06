@@ -41,7 +41,8 @@
     "cap_submit": "Submission",
     "cap_analysis": "Analysis",
     "pass_rate": "Pass rate",
-    "vote_rate": "Vote rate"
+    "vote_rate": "Vote rate",
+    "log_title": "Operation Log"
   },
   "notifications": {
     "title": "Notifications",
@@ -357,7 +358,28 @@
     "tag_no_data": "No tags yet",
     "readonly_hint": "Ops require proposals/API",
     "agent_readonly_hint": "Agent management requires API (create/key/permissions)",
-    "batch_notify_readonly_hint": "Batch notifications must be sent via API"
+    "batch_notify_readonly_hint": "Batch notifications must be sent via API",
+    "log_title": "📋 Operation Log",
+    "log_tab": "📋 Logs",
+    "log_filter_action": "Action Type",
+    "log_filter_actor": "Actor",
+    "log_filter_from": "From Date",
+    "log_filter_to": "To Date",
+    "log_filter_all": "All Types",
+    "log_filter_btn": "Filter",
+    "log_reset_btn": "Reset",
+    "log_actor_placeholder": "Username search",
+    "log_total_prefix": "",
+    "log_total_suffix": " total records",
+    "log_th_time": "Time",
+    "log_th_actor": "Actor",
+    "log_th_action": "Action",
+    "log_th_target": "Target",
+    "log_th_detail": "Detail",
+    "log_th_ip": "IP",
+    "log_empty": "No operation logs yet",
+    "log_prev": "Previous",
+    "log_next": "Next"
   },
   "proposals": {
     "required_field": " is required for {type} proposals",

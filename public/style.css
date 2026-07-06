@@ -540,6 +540,23 @@ th { color: var(--text-muted); font-weight: 500; }
   border: 1px solid;
   line-height: 1.4;
 }
+.log-action-tag {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.log-detail-toggle {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.log-detail-toggle:hover {
+  opacity: 1;
+}
 .empty { color: var(--text-muted); font-style: italic; }
 .notice { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; margin: 1rem 0; }
 .success-notice { background: rgba(74, 222, 128, 0.1); border: 1px solid var(--green); color: var(--green); border-radius: 6px; padding: 0.6rem 1rem; text-align: center; margin-bottom: 1rem; }

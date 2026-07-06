@@ -1,7 +1,7 @@
 // ⚪ 原点社区 · PM2 生态配置
 module.exports = {
   apps: [{
-    name: 'origin-server',
+    name: 'origin-community',
     script: 'server.js',
     cwd: __dirname,
     env: {

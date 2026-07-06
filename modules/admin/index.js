@@ -73,6 +73,7 @@ module.exports = {
           <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
             <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
             <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
           </div>
           <h1>${t('admin.title')}</h1>
           ${notice ? `<div class="success-notice">${escape(notice)}</div>` : ''}
@@ -462,6 +463,7 @@ module.exports = {
           <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
             <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
             <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
           </div>
           <h1>${t('admin.dashboard_title')}</h1>
 
@@ -523,6 +525,149 @@ module.exports = {
             ${activityRows.length ? `<table style="width:100%;font-size:0.9rem"><tr><th style="text-align:left;font-weight:500;color:var(--text-muted);padding:0.5rem 0.5rem">${t('admin.chart_recent_date')}</th><th style="text-align:left;font-weight:500;color:var(--text-muted);padding:0.5rem 0.5rem">${t('admin.chart_recent_event')}</th><th style="text-align:left;font-weight:500;color:var(--text-muted);padding:0.5rem 0.5rem">${t('admin.chart_recent_detail')}</th></tr>${activityRows}</table>` : `<p style="color:var(--text-muted);font-size:0.85rem">${t('admin.chart_recent_empty')}</p>`}
           </div>
         </div>`));
+    });
+
+    // ── 操作日志页面 ──
+    app.get('/admin/logs', auth.admin, (req, res) => {
+      const t = req.t || ft;
+
+      // 获取所有可能的操作类型（去重）
+      const actionTypes = db.prepare('SELECT DISTINCT action FROM audit_logs ORDER BY action').all();
+
+      // 从查询参数获取筛选条件
+      const actionFilter = req.query.action || '';
+      const actorFilter = req.query.actor ? req.query.actor.trim() : '';
+      const fromFilter = req.query.from || '';
+      const toFilter = req.query.to || '';
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = 50;
+      const offset = (page - 1) * limit;
+
+      // 构建 SQL
+      let where = 'WHERE 1=1';
+      const params = [];
+      if (actionFilter) { where += ' AND action = ?'; params.push(actionFilter); }
+      if (actorFilter) { where += ' AND actor_username LIKE ?'; params.push('%' + actorFilter + '%'); }
+      if (fromFilter) { where += ' AND created_at >= ?'; params.push(fromFilter); }
+      if (toFilter) { where += ' AND created_at <= ?'; params.push(toFilter + ' 23:59:59'); }
+
+      const total = db.prepare('SELECT COUNT(*) as c FROM audit_logs ' + where).get(...params).c;
+      const pages = Math.max(1, Math.ceil(total / limit));
+      const rows = db.prepare('SELECT * FROM audit_logs ' + where + ' ORDER BY created_at DESC LIMIT ? OFFSET ?').all(...params, limit, offset);
+
+      // 操作类型 → 中文翻译
+      const actionLabels = {
+        'auth.register': '注册',
+        'auth.login': '登录',
+        'submission.create': '提交方案',
+        'vote.cast': '投票',
+        'proposal.created': '创建提案',
+        'proposal.voted': '提案投票',
+        'admin.agent_create': '创建智能体',
+        'admin.agent_delete': '删除智能体',
+        'admin.agent_key_regenerate': '重置密钥',
+        'admin.agent_permissions': '修改权限',
+        'admin.role_change': '变更角色',
+        'admin.tag_create': '创建标签',
+        'admin.tag_delete': '删除标签',
+        'admin.batch_notify': '批量通知',
+        'admin.submission_tag': '添加标签',
+        'admin.submission_tag_remove': '移除标签'
+      };
+
+      const actionOpts = actionTypes.map(a =>
+        `<option value="${escape(a.action)}"${a.action === actionFilter ? ' selected' : ''}>${escape(actionLabels[a.action] || a.action)}</option>`
+      ).join('');
+
+      const rowHtml = rows.map(r => {
+        const isAgent = r.actor_role === 'agent';
+        let detailPreview = '';
+        if (r.detail && r.detail !== '{}') {
+          try {
+            const parsed = JSON.stringify(JSON.parse(r.detail));
+            detailPreview = `<span class="log-detail-toggle" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'inline':'none'">📋</span><span style="display:none;font-size:0.8rem;color:var(--text-muted)">${escape(parsed)}</span>`;
+          } catch (e) {
+            detailPreview = escape(r.detail);
+          }
+        } else {
+          detailPreview = '—';
+        }
+        return `<tr>
+          <td style="white-space:nowrap;font-size:0.85rem;color:var(--text-muted)">${escape(r.created_at)}</td>
+          <td>${isAgent ? '🤖 ' : '👤 '}${escape(r.actor_username)}</td>
+          <td><span class="log-action-tag">${escape(actionLabels[r.action] || r.action)}</span></td>
+          <td style="font-size:0.85rem">${r.target_type ? escape(r.target_type) + ' ' : ''}${r.target_id ? escape(r.target_id) : '—'}</td>
+          <td style="font-size:0.85rem">${detailPreview}</td>
+          <td style="font-size:0.8rem;color:var(--text-muted)">${escape(r.ip || '')}</td>
+        </tr>`;
+      }).join('');
+
+      const pagination = page > 1 || page < pages ? `
+        <div style="display:flex;justify-content:center;align-items:center;gap:1rem;margin-top:1rem">
+          ${page > 1 ? `<a href="/admin/logs?page=${page - 1}&action=${encodeURIComponent(actionFilter)}&actor=${encodeURIComponent(actorFilter)}&from=${encodeURIComponent(fromFilter)}&to=${encodeURIComponent(toFilter)}" class="btn small">← ${t('admin.log_prev')}</a>` : ''}
+          <span style="font-size:0.9rem;color:var(--text-muted)">${page} / ${pages}</span>
+          ${page < pages ? `<a href="/admin/logs?page=${page + 1}&action=${encodeURIComponent(actionFilter)}&actor=${encodeURIComponent(actorFilter)}&from=${encodeURIComponent(fromFilter)}&to=${encodeURIComponent(toFilter)}" class="btn small">${t('admin.log_next')} →</a>` : ''}
+        </div>` : '';
+
+      res.send(render(t('admin.log_title') + ' · ' + t('home.title'), req.session.user, `
+        <div class="section">
+          <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
+            <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
+            <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
+          </div>
+          <h1>${t('admin.log_title')}</h1>
+          <form method="GET" action="/admin/logs" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;padding:1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px">
+            <label style="flex:1;min-width:140px"><span style="font-size:0.85rem;color:var(--text-muted);display:block;margin-bottom:0.25rem">${t('admin.log_filter_action')}</span>
+              <select name="action" style="width:100%"><option value="">${t('admin.log_filter_all')}</option>${actionOpts}</select></label>
+            <label style="flex:1;min-width:140px"><span style="font-size:0.85rem;color:var(--text-muted);display:block;margin-bottom:0.25rem">${t('admin.log_filter_actor')}</span>
+              <input type="text" name="actor" value="${escape(actorFilter)}" placeholder="${escape(t('admin.log_actor_placeholder'))}" style="width:100%"></label>
+            <label style="flex:1;min-width:130px"><span style="font-size:0.85rem;color:var(--text-muted);display:block;margin-bottom:0.25rem">${t('admin.log_filter_from')}</span>
+              <input type="date" name="from" value="${escape(fromFilter)}" style="width:100%"></label>
+            <label style="flex:1;min-width:130px"><span style="font-size:0.85rem;color:var(--text-muted);display:block;margin-bottom:0.25rem">${t('admin.log_filter_to')}</span>
+              <input type="date" name="to" value="${escape(toFilter)}" style="width:100%"></label>
+            <div style="display:flex;gap:0.5rem;align-items:flex-end;padding-bottom:0.2rem">
+              <button type="submit" class="btn small">🔍 ${t('admin.log_filter_btn')}</button>
+              <a href="/admin/logs" class="btn small" style="background:var(--text-muted);color:#fff">${t('admin.log_reset_btn')}</a>
+            </div>
+          </form>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.5rem">${t('admin.log_total_prefix')} <strong>${total}</strong> ${t('admin.log_total_suffix')}</p>
+          ${rows.length ? `<div style="overflow-x:auto">
+            <table style="font-size:0.9rem;width:100%">
+              <tr>
+                <th style="white-space:nowrap">⏱ ${t('admin.log_th_time')}</th>
+                <th>👤 ${t('admin.log_th_actor')}</th>
+                <th>🎯 ${t('admin.log_th_action')}</th>
+                <th>📎 ${t('admin.log_th_target')}</th>
+                <th>📝 ${t('admin.log_th_detail')}</th>
+                <th>🌐 ${t('admin.log_th_ip')}</th>
+              </tr>${rowHtml}</table></div>` : `<p style="color:var(--text-muted);text-align:center;padding:2rem">${t('admin.log_empty')}</p>`}
+          ${pagination}
+        </div>`));
+    });
+
+    // ── API 操作日志 ──
+    app.get('/api/admin/logs', auth.admin, (req, res) => {
+      const actionFilter = req.query.action || '';
+      const actorFilter = req.query.actor ? req.query.actor.trim() : '';
+      const fromFilter = req.query.from || '';
+      const toFilter = req.query.to || '';
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit) || 50));
+      const offset = (page - 1) * limit;
+
+      let where = 'WHERE 1=1';
+      const params = [];
+      if (actionFilter) { where += ' AND action = ?'; params.push(actionFilter); }
+      if (actorFilter) { where += ' AND actor_username LIKE ?'; params.push('%' + actorFilter + '%'); }
+      if (fromFilter) { where += ' AND created_at >= ?'; params.push(fromFilter); }
+      if (toFilter) { where += ' AND created_at <= ?'; params.push(toFilter + ' 23:59:59'); }
+
+      const total = db.prepare('SELECT COUNT(*) as c FROM audit_logs ' + where).get(...params).c;
+      const pages = Math.max(1, Math.ceil(total / limit));
+      const rows = db.prepare('SELECT * FROM audit_logs ' + where + ' ORDER BY created_at DESC LIMIT ? OFFSET ?').all(...params, limit, offset);
+
+      res.json({ rows, total, page, pages });
     });
 
     // ── API ──

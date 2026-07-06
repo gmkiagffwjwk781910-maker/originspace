@@ -20,10 +20,8 @@ HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "${URL}" 2>/dev/
 
 if [ "${HTTP_CODE}" = "000" ]; then
   log "❌ HTTP 无响应 (curl failed)"
-  RESTART=true
 elif [ "${HTTP_CODE}" != "200" ] && [ "${HTTP_CODE}" != "302" ]; then
   log "⚠️ HTTP 异常状态码: ${HTTP_CODE}"
-  RESTART=true
 fi
 
 # ── 2. PM2 进程状态检查 ──
@@ -44,8 +42,7 @@ case "${PM2_STATUS_CODE}" in
   online)
     ;;
   stopped|errored|NOT_FOUND)
-    log "❌ PM2 进程 ${PM2_STATUS_CODE}"
-    pm2 start "${APP_NAME}" >> "${LOG}" 2>&1
+    log "❌ PM2 进程 ${PM2_STATUS_CODE} — 需人工介入"
     ;;
   PARSE_FAIL)
     log "⚠️ PM2 状态解析失败"
@@ -56,13 +53,7 @@ if [ -n "${PM2_RESTARTS}" ] && [ "${PM2_RESTARTS}" -ge 5 ] 2>/dev/null; then
   log "⚠️ 累计重启 ${PM2_RESTARTS} 次（≥5），需关注"
 fi
 
-# ── 3. 需要重启 ──
-if [ "${RESTART:-false}" = true ]; then
-  log "🔁 执行 PM2 restart"
-  pm2 restart "${APP_NAME}" >> "${LOG}" 2>&1
-fi
-
-# ── 4. 日志轮转提示 ──
+# ── 3. 日志轮转提示 ──
 ERR_LOG_SIZE=$(stat -c%s "/home/troomy/.openclaw/workspace/origin-community/logs/err-0.log" 2>/dev/null || echo 0)
 OUT_LOG_SIZE=$(stat -c%s "/home/troomy/.openclaw/workspace/origin-community/logs/out-0.log" 2>/dev/null || echo 0)
 if [ "${ERR_LOG_SIZE}" -gt 10485760 ] || [ "${OUT_LOG_SIZE}" -gt 10485760 ]; then

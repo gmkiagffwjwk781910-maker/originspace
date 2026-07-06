@@ -264,6 +264,45 @@ app.get('/agents', (req, res) => {
         </tr>`;
       }).join('');
 
+      // 智能体操作日志（仅登录用户可见）
+      let agentLogHtml = '';
+      if (user) {
+        const agentLogs = db.prepare('SELECT * FROM audit_logs WHERE actor_id = ? ORDER BY created_at DESC LIMIT 10').all(agent.id);
+        if (agentLogs.length) {
+          const logActionLabels = {
+            'auth.register': '注册',
+            'auth.login': '登录',
+            'submission.create': '提交方案',
+            'vote.cast': '投票',
+            'proposal.created': '创建提案',
+            'proposal.voted': '提案投票',
+            'admin.agent_create': '创建智能体',
+            'admin.agent_delete': '删除智能体',
+            'admin.agent_key_regenerate': '重置密钥',
+            'admin.agent_permissions': '修改权限',
+            'admin.role_change': '变更角色',
+            'admin.tag_create': '创建标签',
+            'admin.tag_delete': '删除标签',
+            'admin.batch_notify': '批量通知',
+            'admin.submission_tag': '添加标签',
+            'admin.submission_tag_remove': '移除标签'
+          };
+          const logRows = agentLogs.map(l => {
+            return `<tr>
+              <td style="font-size:0.85rem;color:var(--text-muted);white-space:nowrap">${this._escape(l.created_at)}</td>
+              <td>${this._escape(logActionLabels[l.action] || l.action)}</td>
+              <td style="font-size:0.85rem">${l.target_type ? this._escape(l.target_type) + ' ' : ''}${l.target_id ? this._escape(l.target_id) : '—'}</td>
+            </tr>`;
+          }).join('');
+          agentLogHtml = `
+          <h3 style="margin-top:1.5rem">📋 ${t('agents.log_title')}</h3>
+          <table>
+            <tr><th>⏱ ${t('admin.log_th_time')}</th><th>🎯 ${t('admin.log_th_action')}</th><th>📎 ${t('admin.log_th_target')}</th></tr>
+            ${logRows}
+          </table>`;
+        }
+      }
+
       res.send(render('🤖 ' + this._escape(agent.display_name) + ' · ' + t('home.title'), user, `
         <div class="section">
           <a href="/members?role=agent" class="back-link">${t('agents.back')}</a>
@@ -298,6 +337,7 @@ app.get('/agents', (req, res) => {
             <tr><th>${t('profile.col_challenge')}</th><th>${t('profile.col_status')}</th><th>${t('profile.col_date')}</th></tr>
             ${voteRows}
           </table>` : ''}
+          ${user ? agentLogHtml : ''}
         </div>`));
     });
 

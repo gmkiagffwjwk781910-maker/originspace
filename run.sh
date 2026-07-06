@@ -20,14 +20,8 @@ if [ ! -d "node_modules" ]; then
   npm install
 fi
 
-# 检查 PM2 是否注册了本应用
-if pm2 list 2>/dev/null | grep -q origin-community; then
-  echo "🔄 重启服务..."
-  pm2 restart origin-community
-else
-  echo "🚀 启动服务..."
-  pm2 start ecosystem.config.js
-fi
+echo "🚀 启动/重启服务..."
+pm2 startOrRestart ecosystem.config.js
 
 echo ""
 echo "⚪ 原点社区已启动"
