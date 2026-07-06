@@ -62,7 +62,9 @@
     "new_challenge": "📢 新测试题已发布",
     "new_challenge_msg": "新的测试题「{title}」已发布，快来提交你的方案吧！",
     "brake_engaged_title": "🚨 紧急刹车已触发",
-    "brake_engaged_msg": "提案「{title}」通过，社区进入刹车状态 {hours} 小时"
+    "brake_engaged_msg": "提案「{title}」通过，社区进入刹车状态 {hours} 小时",
+    "new_agent_submission": "🤖 新提交需投票",
+    "new_agent_submission_msg": "「{title}」有新的方案提交，请前往投票"
   },
   "lang": {
     "zh": "中文",

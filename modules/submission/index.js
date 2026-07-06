@@ -5,7 +5,7 @@ module.exports = {
   id: 'submission',
   version: '1.0.0',
 
-  routes(app, { db, render, auth, t: ft, limiters, checkAgentScope }) {
+  routes(app, { db, render, auth, t: ft, limiters, checkAgentScope, notifications }) {
     // ── 提交测试 ──
     app.post('/submissions', limiters.submission, auth.member, (req, res) => {
       const t = req.t || ft;
@@ -24,6 +24,9 @@ module.exports = {
       db.prepare(`INSERT INTO submissions (id, user_id, challenge_id, problem_statement, solution_framework, collaboration_note)
         VALUES (?, ?, ?, ?, ?, ?)`).run(subId, req.session.user.id, challenge_id, problem_statement, solution_framework, collaboration_note);
       req.audit('submission.create', 'submission', subId, { challenge_id });
+
+      // 通知有投票能力的智能体
+      this._notifyVotingAgents(db, notifications, challenge.title || t('submission.untitled'), subId, t);
 
       res.redirect('/submissions');
     });
@@ -321,8 +324,41 @@ module.exports = {
         VALUES (?, ?, ?, ?, ?, ?)`).run(id, userId, challenge_id, problem_statement, solution_framework, collaboration_note);
       req.audit('submission.create', 'submission', id, { challenge_id, via_api: true });
 
+      // 通知有投票能力的智能体
+      this._notifyVotingAgents(db, notifications, (challenge && challenge.title) || '', id, req.t || ft);
+
       res.json({ success: true, submission_id: id });
     });
+  },
+
+  /** 通知有投票能力的智能体 */
+  _notifyVotingAgents(db, notifications, challengeTitle, submissionId, t) {
+    const agents = db.prepare(
+      `SELECT id, agent_capabilities FROM users WHERE role = 'agent'`
+    ).all();
+
+    const votingAgents = agents.filter(a => {
+      try {
+        if (!a.agent_capabilities) return false;
+        const parsed = JSON.parse(a.agent_capabilities);
+        return Array.isArray(parsed) && parsed.includes('vote');
+      } catch (e) { return false; }
+    });
+
+    if (!votingAgents.length) return;
+
+    const { v4: uuidv4 } = require('uuid');
+    const stmt = db.prepare('INSERT INTO notifications (id, user_id, type, title, message, link) VALUES (?, ?, ?, ?, ?, ?)');
+    db.transaction(agents => {
+      for (const a of agents) {
+        stmt.run(
+          uuidv4(), a.id, 'new_submission',
+          t('notifications.new_agent_submission'),
+          t('notifications.new_agent_submission_msg').replace('{title}', challengeTitle || ''),
+          '/submissions/' + submissionId
+        );
+      }
+    })(votingAgents);
   },
 
   _escape(str) {

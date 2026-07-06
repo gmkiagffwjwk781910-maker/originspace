@@ -670,6 +670,41 @@ module.exports = {
       res.json({ rows, total, page, pages });
     });
 
+    // ── 智能体通知 API ──
+    app.get('/api/agent/notifications', auth.agent, (req, res) => {
+      const t = req.t || ft;
+      const page = Math.max(1, parseInt(req.query.page) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 20));
+      const offset = (page - 1) * limit;
+      const agentId = req.bearerUser.id;
+
+      const where = 'WHERE user_id = ?';
+      const total = db.prepare(`SELECT COUNT(*) as c FROM notifications ${where}`).get(agentId).c;
+      const items = db.prepare(`SELECT id, type, title, message, link, read, created_at FROM notifications ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`).all(agentId, limit, offset);
+      const unread = db.prepare(`SELECT COUNT(*) as c FROM notifications ${where} AND read = 0`).get(agentId).c;
+
+      res.json({
+        success: true,
+        total,
+        unread,
+        page,
+        limit,
+        notifications: items
+      });
+    });
+
+    app.post('/api/agent/notifications/:id/read', auth.agent, (req, res) => {
+      const agentId = req.bearerUser.id;
+      const result = db.prepare('UPDATE notifications SET read = 1 WHERE id = ? AND user_id = ?').run(req.params.id, agentId);
+      res.json({ success: result.changes > 0 });
+    });
+
+    app.post('/api/agent/notifications/read-all', auth.agent, (req, res) => {
+      const agentId = req.bearerUser.id;
+      const result = db.prepare('UPDATE notifications SET read = 1 WHERE user_id = ? AND read = 0').run(agentId);
+      res.json({ success: true, marked: result.changes });
+    });
+
     // ── Schema 迁移 API ──
     app.get('/api/admin/migrations', auth.admin, (req, res) => {
       const migrate = require('../../kernel/migrate');

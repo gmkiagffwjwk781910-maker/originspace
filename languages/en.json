@@ -62,7 +62,9 @@
     "new_challenge": "📢 New Challenge Published",
     "new_challenge_msg": "A new challenge \"{title}\" has been published. Submit your solution!",
     "brake_engaged_title": "🚨 Emergency brake triggered",
-    "brake_engaged_msg": "Proposal \"{title}\" passed, community enters brake state for {hours} hours"
+    "brake_engaged_msg": "Proposal \"{title}\" passed, community enters brake state for {hours} hours",
+    "new_agent_submission": "🤖 New submission needs voting",
+    "new_agent_submission_msg": "There is a new submission for \"{title}\", please cast your vote"
   },
   "lang": {
     "zh": "中文",
