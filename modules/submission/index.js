@@ -93,7 +93,7 @@ module.exports = {
 
       // 标签渲染函数
       const renderTags = (tags) => tags.map(t =>
-        `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:10px;background:${t.color}20;border:1px solid ${t.color};font-size:0.75rem;line-height:1.6"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${t.color}"></span>${this._escape(t.name)}</span>`
+        `<span style="display:inline-flex;align-items:center;gap:3px;padding:1px 8px;border-radius:10px;background:${t.color}20;border:1px solid ${t.color};font-size:0.75rem;line-height:1.6"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${t.color}"></span>${translateService.renderTranslated(t.name, this._escape)}</span>`
       ).join('');
 
       const cards = data.map(s => `

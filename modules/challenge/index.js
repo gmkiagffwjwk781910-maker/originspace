@@ -54,7 +54,7 @@ module.exports = {
           const statusMap = { pending: t('challenge.status_pending'), approved: t('challenge.status_approved'), rejected: t('challenge.status_rejected') };
           html = `<div class="section"><h1>${t('challenge.title')}</h1>
             <div class="notice"><p>${t('challenge.already_submitted')}</p>
-            <p>状态: <strong>${statusMap[existing.status] || existing.status}</strong></p>
+            <p>${t('admin.col_status')}: <strong>${statusMap[existing.status] || existing.status}</strong></p>
             <a href="/submissions/${existing.id}" class="btn">${t('challenge.view_detail')}</a></div></div>`;
         } else {
           html = `<div class="section">

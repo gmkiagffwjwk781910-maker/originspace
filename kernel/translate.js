@@ -109,6 +109,12 @@ async function preTranslateAll(db, logFn) {
     if (c.instructions) sources.push({ source: 'challenge', id: c.id, text: c.instructions, field: 'instructions' });
   }
 
+  // tags
+  const allTags = db.prepare("SELECT id, name FROM tags").all();
+  for (const tg of allTags) {
+    if (tg.name) sources.push({ source: 'tag', id: tg.id, text: tg.name, field: 'name' });
+  }
+
   // users (display_name, bio)
   // Skip - users are more dynamic and less important for translation
 
@@ -167,11 +173,11 @@ function renderTranslated(text, lang, db, escapeFn) {
 
   if (cached) {
     const escapedTrans = escapeFn(cached);
-    return `<span class="tr-text">${escapedTrans}</span><span class="tr-orig" style="display:none">${escapedOrig}</span> <a href="#" class="tr-toggle" onclick="event.preventDefault();var p=this.previousElementSibling.previousElementSibling;if(p.style.display==='none'){this.previousElementSibling.style.display='none';p.style.display='';this.textContent='Show original'}else{this.previousElementSibling.style.display='';p.style.display='none';this.textContent='Show translation'}" class="tr-link">Show original</a>`;
+    return `<span class="tr-text">${escapedTrans}</span><span class="tr-orig" style="display:none">${escapedOrig}</span> <a href="#" class="tr-toggle" onclick="event.preventDefault();toggleOrig(this)">Show original</a>`;
   }
 
   // 未缓存：显示原文 + translate 按钮
-  return `<span class="tr-text" data-tr="${escapeFn(text)}">${escapedOrig}</span> <a href="#" class="tr-btn" onclick="event.preventDefault();translateClick(this)" class="tr-link">🌐 Translate</a>`;
+  return `<span class="tr-text" data-tr="${escapeFn(text)}">${escapedOrig}</span> <a href="#" class="tr-btn" onclick="event.preventDefault();translateContent(this)">🌐 Translate</a>`;
 }
 
 module.exports = { getCached, setCached, translateText, preTranslateAll, renderTranslated, escapeHtml };
