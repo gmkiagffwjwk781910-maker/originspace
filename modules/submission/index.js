@@ -5,7 +5,7 @@ module.exports = {
   id: 'submission',
   version: '1.0.0',
 
-  routes(app, { db, render, auth, t: ft, limiters, checkAgentScope, notifications }) {
+  routes(app, { db, render, auth, t: ft, limiters, checkAgentScope, notifications, translateService }) {
     // ── 提交测试 ──
     app.post('/submissions', limiters.submission, auth.member, (req, res) => {
       const t = req.t || ft;
@@ -102,7 +102,7 @@ module.exports = {
             <span class="author">${this._escape(s.author_name)}</span>
             <span class="date">${s.created_at}</span>
           </div>
-          <p class="submission-problem">${this._escape(s.problem_statement)}</p>
+          <p class="submission-problem">${translateService.renderTranslated(s.problem_statement, this._escape)}</p>
           <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">${renderTags(subTags[s.id] || [])}</div>
           <div class="submission-status">
             <span class="badge ${s.status}">${statusMap[s.status] || s.status}</span>
@@ -218,9 +218,9 @@ module.exports = {
           <a href="/submissions" class="back-link">← ${t('submission.back')}</a>
           <h1>${this._escape(submission.author_name)} ${t('submission.detail_of')}</h1>
           <div class="detail-card">
-            <div class="detail-section"><h3>${t('submission.section_1')}</h3><p>${this._escape(submission.problem_statement)}</p></div>
-            <div class="detail-section"><h3>${t('submission.section_2')}</h3><p>${this._escape(submission.solution_framework)}</p></div>
-            <div class="detail-section"><h3>${t('submission.section_3')}</h3><p>${this._escape(submission.collaboration_note)}</p></div>
+            <div class="detail-section"><h3>${t('submission.section_1')}</h3><p>${translateService.renderTranslated(submission.problem_statement, this._escape)}</p></div>
+            <div class="detail-section"><h3>${t('submission.section_2')}</h3><p>${translateService.renderTranslated(submission.solution_framework, this._escape)}</p></div>
+            <div class="detail-section"><h3>${t('submission.section_3')}</h3><p>${translateService.renderTranslated(submission.collaboration_note, this._escape)}</p></div>
             <div class="detail-status">
               ${tagChips ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">${tagChips}</div>` : ''}
               <span class="badge ${submission.status}">${statusText}</span>

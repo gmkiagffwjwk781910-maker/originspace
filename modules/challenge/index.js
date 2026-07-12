@@ -29,7 +29,7 @@ module.exports = {
     }
   },
 
-  routes(app, { db, render, auth, t: ft }) {
+  routes(app, { db, render, auth, t: ft, translateService }) {
     // ── 测试题页面 ──
     app.get('/test', (req, res) => {
       const t = req.t || ft;
@@ -43,8 +43,8 @@ module.exports = {
         html = `<div class="section">
           <h1>${t('challenge.title')}</h1>
           <div class="challenge-card">
-            <h2>${challenge.title} <span class="help-icon" data-help="${t('challenge.title_help')}">?</span></h2>
-            <div class="challenge-instructions">${challenge.instructions.replace(/\n/g, '<br>')}</div>
+            <h2>${translateService.renderTranslated(challenge.title, this._escape)} <span class="help-icon" data-help="${t('challenge.title_help')}">?</span></h2>
+            <div class="challenge-instructions">${translateService.renderTranslated(challenge.instructions, this._escape).replace(/\n/g, '<br>')}</div>
           </div>
           <p style="margin-top:1rem"><a href="/register" class="btn">${t('auth.register_btn')}</a>${t('challenge.login_hint')}</p>
         </div>`;
@@ -60,8 +60,8 @@ module.exports = {
           html = `<div class="section">
             <h1>${t('challenge.title')}</h1>
             <div class="challenge-card">
-              <h2>${challenge.title} <span class="help-icon" data-help="${t('challenge.title_help')}">?</span></h2>
-              <div class="challenge-instructions">${challenge.instructions.replace(/\n/g, '<br>')}</div>
+              <h2>${translateService.renderTranslated(challenge.title, this._escape)} <span class="help-icon" data-help="${t('challenge.title_help')}">?</span></h2>
+              <div class="challenge-instructions">${translateService.renderTranslated(challenge.instructions, this._escape).replace(/\n/g, '<br>')}</div>
             </div>
             <form method="POST" action="/submissions" class="test-form">
               <input type="hidden" name="challenge_id" value="${challenge.id}">

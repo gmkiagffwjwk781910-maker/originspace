@@ -6,7 +6,7 @@ module.exports = {
   id: 'home',
   version: '1.0.0',
 
-  routes(app, { db, render, auth, t: ft, generateUserCode }) {
+  routes(app, { db, render, auth, t: ft, generateUserCode, translateService }) {
     // ── 首页 ──
     app.get('/', (req, res) => {
       const t = req.t || ft;
@@ -56,7 +56,7 @@ module.exports = {
         ${challenge ? `
         <div class="section cta">
           <h2>${t('home.current_test')}</h2>
-          <p>${challenge.description}</p>
+          <p>${translateService.renderTranslated(challenge.description, this._escape)}</p>
           ${user ? `<a href="/test" class="btn">${t('home.start_test')}</a>` : `<a href="/login" class="btn">${t('home.join_us')}</a>`}
         </div>` : ''}`;
 

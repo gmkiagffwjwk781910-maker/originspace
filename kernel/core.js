@@ -361,6 +361,31 @@ class Kernel {
     // Load modules
     await this._loadModules();
 
+    // ── 翻译 API ──
+    const tr = require('./translate');
+    this.app.post('/api/translate', (req, res) => {
+      try {
+        const { text, source, target } = req.body || {};
+        if (!text) return res.json({ success: false, error: 'no_text' });
+        // 先查缓存
+        const cached = tr.getCached(this.db, text, target || 'en');
+        if (cached) return res.json({ success: true, translated: cached });
+        // 异步翻译（无阻塞）
+        res.json({ success: false, error: 'not_cached' });
+        // 后台排队翻译
+        tr.translateText(text, target || 'en').then(t => {
+          if (t && t !== text) tr.setCached(this.db, text, t, target || 'en');
+        }).catch(e => console.error('  ⚠️ 后台翻译失败:', e.message));
+      } catch (e) {
+        res.json({ success: false, error: e.message });
+      }
+    });
+
+    // ── 预翻译（迁移后异步进行）──
+    setTimeout(() => {
+      tr.preTranslateAll(this.db, console.log).catch(e => console.error('  ⚠️ 预翻译失败:', e.message));
+    }, 2000);
+
     // Start
         this.server = this.app.listen(this.config.port, '127.0.0.1');
     console.log(`\n⚪ Kernel started → http://localhost:${this.config.port}`);
@@ -440,6 +465,7 @@ class Kernel {
   }
 
   _moduleContext() {
+    const tr = require('./translate');
     return {
       kernel: this,
       db: this.db,
@@ -447,6 +473,10 @@ class Kernel {
       t: (key) => translate(key, _requestLang),
       csrfToken: () => _requestCsrf,
       limiters: this._limiters || {},
+      translateService: {
+        getCached: (text) => tr.getCached(this.db, text, _requestLang),
+        renderTranslated: (text, escapeFn) => tr.renderTranslated(text, _requestLang, this.db, escapeFn)
+      },
       render: (title, user, content, lang) => this._wrapHTML(title, user, content, lang || _requestLang || _defaultLang),
       auth: {
         // GET 请求允许公开浏览，仅 POST 需要登录
@@ -582,6 +612,42 @@ if(b){b.onclick=function(e){e.stopPropagation();var d=this.nextElementSibling;if
 document.addEventListener('click',function(){var d=document.querySelector('.lang-dropdown');if(d&&d.style.display!=='none'){d.style.display='none'}},false);
 document.querySelectorAll('.lang-option').forEach(function(a){a.addEventListener('click',function(e){e.preventDefault();var l=this.dataset.lang;if(!l)return;var x=new XMLHttpRequest();x.open('GET','/lang/'+l);x.setRequestHeader('X-Requested-With','XMLHttpRequest');x.onload=function(){location.reload()};x.onerror=function(){location.reload()};x.send()})});
 })();
+
+// 翻译切换
+window.translateContent = function(btn){
+  var span = btn.parentElement.querySelector('.tr-text');
+  if(!span||!span.dataset.tr) return;
+  var text = span.dataset.tr;
+  var x = new XMLHttpRequest();
+  x.open('POST','/api/translate');
+  x.setRequestHeader('Content-Type','application/json');
+  x.onload = function(){
+    try{
+      var d = JSON.parse(x.responseText);
+      if(d.translated){
+        span.innerHTML = d.translated;
+        span.dataset.translated = d.translated;
+        delete span.dataset.tr;
+        btn.outerHTML = '<a href="#" class="tr-toggle" onclick="event.preventDefault();toggleOrig(this)" style="font-size:0.75rem;color:var(--accent);cursor:pointer">Show original</a>';
+      }
+    }catch(e){}
+  };
+  x.send(JSON.stringify({text:text,source:'zh',target:'en'}));
+};
+window.toggleOrig = function(link){
+  var p = link.parentElement;
+  var t = p.querySelector('.tr-text');
+  var o = p.querySelector('.tr-orig');
+  if(t&&o){
+    if(t.style.display==='none'){
+      t.style.display='';o.style.display='none';
+      link.textContent = 'Show original';
+    } else {
+      t.style.display='none';o.style.display='';
+      link.textContent = 'Show translation';
+    }
+  }
+};
 </script>
 </body>
 </html>`;
