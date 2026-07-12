@@ -852,6 +852,122 @@ module.exports = {
       res.json(users);
     });
 
+    // ── 看板数据 API ──
+    app.get('/api/admin/stats', auth.api, (req, res) => {
+      const user = req.bearerUser || req.session.user;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'forbidden' });
+      }
+
+      // 汇总统计
+      const roleDist = db.prepare("SELECT role, COUNT(*) as count FROM users GROUP BY role").all();
+      const members = roleDist.filter(r => r.role === 'member' || r.role === 'admin').reduce((s, r) => s + r.count, 0);
+      const applicants = roleDist.find(r => r.role === 'applicant')?.count || 0;
+      const totalAgents = roleDist.find(r => r.role === 'agent')?.count || 0;
+      const totalUsers = roleDist.reduce((s, r) => s + r.count, 0);
+
+      const statusDist = db.prepare("SELECT status, COUNT(*) as count FROM submissions GROUP BY status").all();
+      const pendingSubs = statusDist.find(s => s.status === 'pending')?.count || 0;
+      const approvedSubs = statusDist.find(s => s.status === 'approved')?.count || 0;
+      const rejectedSubs = statusDist.find(s => s.status === 'rejected')?.count || 0;
+      const totalSubs = statusDist.reduce((s, r) => s + r.count, 0);
+
+      const totalVotes = db.prepare('SELECT COUNT(*) as c FROM votes').get().c;
+      const totalChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges').get().c;
+      const activeChallenges = db.prepare('SELECT COUNT(*) as c FROM challenges WHERE is_active = 1').get().c;
+
+      // 提交趋势（近 7 天）
+      const subTrend = db.prepare(`SELECT date(created_at) as day, COUNT(*) as count
+        FROM submissions WHERE created_at >= datetime('now', '-7 days')
+        GROUP BY date(created_at) ORDER BY day`).all();
+
+      // 提案统计
+      const propCount = db.prepare('SELECT COUNT(*) as c FROM proposals').get().c;
+      const propStatusDist = db.prepare('SELECT status, COUNT(*) as count FROM proposals GROUP BY status').all();
+      const brakeCount = db.prepare("SELECT COUNT(*) as c FROM proposals WHERE type = 'emergency_brake'").get().c;
+      const activeProps = propStatusDist.find(s => s.status === 'active')?.count || 0;
+      const passedProps = propStatusDist.find(s => s.status === 'passed')?.count || 0;
+      const rejectedProps = propStatusDist.find(s => s.status === 'rejected')?.count || 0;
+      const expiredProps = propStatusDist.find(s => s.status === 'expired')?.count || 0;
+
+      // 投票统计
+      const totalApproves = db.prepare("SELECT COUNT(*) as c FROM votes WHERE decision = 'approve'").get().c;
+      const totalRejects = db.prepare("SELECT COUNT(*) as c FROM votes WHERE decision = 'reject'").get().c;
+      const voteByType = db.prepare(`SELECT u.role, COUNT(*) as count FROM votes v
+        JOIN users u ON v.voter_id = u.id GROUP BY u.role`).all();
+      const agentVotes = voteByType.find(r => r.role === 'agent')?.count || 0;
+      const humanVotes = totalVotes - agentVotes;
+      const subByType = db.prepare(`SELECT u.role, COUNT(*) as count FROM submissions s
+        JOIN users u ON s.user_id = u.id GROUP BY u.role`).all();
+      const agentSubs = subByType.find(r => r.role === 'agent')?.count || 0;
+      const humanSubs = totalSubs - agentSubs;
+
+      // 活跃度
+      const active24h = db.prepare("SELECT COUNT(DISTINCT actor_id) as c FROM audit_logs WHERE created_at >= datetime('now', '-1 day')").get().c;
+      const active7d = db.prepare("SELECT COUNT(DISTINCT actor_id) as c FROM audit_logs WHERE created_at >= datetime('now', '-7 days')").get().c;
+      const activeToday = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-1 day')`).get().c;
+      const activeWeek = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND last_api_at IS NOT NULL AND last_api_at >= datetime('now', '-7 days')`).get().c;
+      const inactiveAgents = db.prepare(`SELECT COUNT(*) as c FROM users WHERE role = 'agent' AND (last_api_at IS NULL OR last_api_at < datetime('now', '-7 days'))`).get().c;
+
+      // 能力分布
+      const allCapRows = db.prepare(`SELECT agent_capabilities FROM users WHERE role = 'agent' AND agent_capabilities IS NOT NULL AND agent_capabilities != '[]'`).all();
+      const capCounts = { vote: 0, submit: 0, analysis: 0 };
+      for (const row of allCapRows) {
+        try {
+          const caps = JSON.parse(row.agent_capabilities);
+          if (Array.isArray(caps)) caps.forEach(c => { if (capCounts[c] !== undefined) capCounts[c]++; });
+        } catch (e) {}
+      }
+
+      // 近 15 条活动
+      const recentUsers = db.prepare("SELECT 'user' as type, username as label, created_at FROM users ORDER BY created_at DESC LIMIT 5").all();
+      const recentSubs = db.prepare("SELECT 'submission' as type, problem_statement as label, created_at FROM submissions ORDER BY created_at DESC LIMIT 5").all();
+      const recentVotes = db.prepare(`SELECT 'vote' as type, u.username as label, v.created_at FROM votes v LEFT JOIN users u ON v.voter_id = u.id ORDER BY v.created_at DESC LIMIT 5`).all();
+      const recentChals = db.prepare("SELECT 'challenge' as type, title as label, created_at FROM challenges ORDER BY created_at DESC LIMIT 5").all();
+      const allActivity = [...recentUsers, ...recentSubs, ...recentVotes, ...recentChals]
+        .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+        .slice(0, 15);
+
+      res.json({
+        success: true,
+        data: {
+          overview: {
+            members, applicants, agents: totalAgents, totalUsers,
+            submissions: { total: totalSubs, pending: pendingSubs, approved: approvedSubs, rejected: rejectedSubs },
+            votes: totalVotes,
+            challenges: { total: totalChallenges, active: activeChallenges }
+          },
+          trends: {
+            submissions: subTrend
+          },
+          proposals: {
+            total: propCount, active: activeProps, passed: passedProps,
+            rejected: rejectedProps, expired: expiredProps, brakes: brakeCount
+          },
+          voting: {
+            approve: totalApproves,
+            reject: totalRejects,
+            byRole: {
+              human: { votes: humanVotes, submissions: humanSubs },
+              agent: { votes: agentVotes, submissions: agentSubs }
+            }
+          },
+          activity: {
+            active24h, active7d,
+            agentActiveToday: activeToday,
+            agentActiveWeek: activeWeek,
+            agentInactive: inactiveAgents,
+            capabilities: {
+              vote: capCounts.vote,
+              submit: capCounts.submit,
+              analysis: capCounts.analysis
+            }
+          },
+          recentActivity: allActivity
+        }
+      });
+    });
+
     app.get('/api/agent/me', auth.agent, (req, res) => {
       res.json({
         id: req.bearerUser.id,
