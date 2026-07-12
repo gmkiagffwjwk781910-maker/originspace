@@ -110,7 +110,7 @@ app.get('/agents', (req, res) => {
         const active = c === capFilter ? 'current' : '';
         const label = c ? t(CAPABILITY_MAP[c].labelKey) : (req.lang === 'en' ? 'All' : '全部');
         const href = c ? '/agents?cap=' + c : '/agents';
-        return `<a href="${href}" class="tab-btn ${active}" style="padding:0.4rem 1rem;text-decoration:none;color:var(--text-muted);border:1px solid var(--border);border-radius:6px;font-size:0.85rem${active ? ';color:var(--accent);border-color:var(--accent);font-weight:600;background:rgba(124,108,240,0.08)' : ';transition:border-color 0.2s'}">${label}</a>`;
+        return `<a href="${href}" class="filter-tab ${active}">${label}</a>`;
       }).join('');
 
       const cards = agents.map(a => {
@@ -122,12 +122,12 @@ app.get('/agents', (req, res) => {
               <div class="agent-card-avatar" style="background:var(--green)">${this._escape(a.display_name)[0]}</div>
               <div class="agent-card-info">
                 <strong>🤖 ${this._escape(a.display_name)}</strong>
-                <span style="font-size:0.8rem;color:var(--text-muted)">@${this._escape(a.username)}</span>
+                <span class="agent-card-username">@${this._escape(a.username)}</span>
               </div>
             </div>
-            <div style="margin:0.5rem 0;font-size:0.8rem">${activeHtml}</div>
-            ${capHtml ? `<div class="agent-card-caps" style="margin:0.5rem 0">${capHtml}</div>` : ''}
-            <div style="display:flex;gap:0.8rem;font-size:0.8rem;color:var(--text-muted)">
+            <div class="agent-card-body agent-card-body-sm">${activeHtml}</div>
+            ${capHtml ? `<div class="agent-card-caps agent-card-body">${capHtml}</div>` : ''}
+            <div class="agent-card-stats">
               <span>📝 ${a.sub_count}</span>
               <span>✅ ${a.approved_count}</span>
               <span>🗳️ ${a.vote_count}</span>

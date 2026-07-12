@@ -70,10 +70,10 @@ module.exports = {
 
       res.send(render(t('admin.title') + ' · ' + t('home.title'), req.session.user, `
         <div class="section">
-          <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
-            <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
-            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
+          <div class="tabs">
+            <a href="/admin" class="tab-btn active">${t('admin.mgmt_tab')}</a>
+            <a href="/admin/dashboard" class="tab-btn">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab-btn">${t('admin.log_tab')}</a>
           </div>
           <h1>${t('admin.title')}</h1>
           ${notice ? `<div class="success-notice">${escape(notice)}</div>` : ''}
@@ -494,10 +494,10 @@ module.exports = {
 
       res.send(render(t('admin.dashboard_title') + ' · ' + t('home.title'), req.session.user, `
         <div class="section">
-          <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
-            <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
-            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
+          <div class="tabs">
+            <a href="/admin" class="tab-btn">${t('admin.mgmt_tab')}</a>
+            <a href="/admin/dashboard" class="tab-btn active">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab-btn">${t('admin.log_tab')}</a>
           </div>
           <h1>${t('admin.dashboard_title')}</h1>
 
@@ -739,10 +739,10 @@ module.exports = {
 
       res.send(render(t('admin.log_title') + ' · ' + t('home.title'), req.session.user, `
         <div class="section">
-          <div class="admin-tabs" style="display:flex;gap:0;margin-bottom:1.5rem;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-            <a href="/admin" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.mgmt_tab')}</a>
-            <a href="/admin/dashboard" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:transparent;color:var(--text);text-decoration:none;font-size:0.9rem">${t('admin.dashboard_tab')}</a>
-            <a href="/admin/logs" class="tab" style="flex:1;text-align:center;padding:0.6rem;background:var(--accent);color:#000;font-weight:600;text-decoration:none;font-size:0.9rem">${t('admin.log_tab')}</a>
+          <div class="tabs">
+            <a href="/admin" class="tab-btn">${t('admin.mgmt_tab')}</a>
+            <a href="/admin/dashboard" class="tab-btn">${t('admin.dashboard_tab')}</a>
+            <a href="/admin/logs" class="tab-btn active">${t('admin.log_tab')}</a>
           </div>
           <h1>${t('admin.log_title')}</h1>
           <form method="GET" action="/admin/logs" style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;margin-bottom:1rem;padding:1rem;background:var(--card-bg);border:1px solid var(--border);border-radius:8px">

@@ -10,7 +10,14 @@
   --accent-hover: #9b8cf5;
   --green: #4ade80;
   --red: #f87171;
+  --yellow: #fbbf24;
   --radius: 10px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-hover: 0 4px 16px rgba(0,0,0,0.4);
+  --transition: 0.2s ease;
+  --font-sm: 0.85rem;
+  --font-md: 0.95rem;
+  --font-lg: 1.1rem;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -126,13 +133,23 @@ nav a:hover::after { width: 100%; }
   gap: 1rem;
   margin: 2rem 0;
 }
-.stat-card {
+/* 统一卡片 */
+.card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 1.2rem;
-  text-align: center;
+  box-shadow: var(--shadow);
+  transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
 }
+.card-hover:hover {
+  box-shadow: var(--shadow-hover);
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+.card-center { text-align: center; }
+.card-body { padding: 0; }
+
 .stat-number {
   display: block;
   font-size: 2rem;
@@ -181,6 +198,39 @@ nav a:hover::after { width: 100%; }
 }
 .btn:hover { background: var(--accent-hover); }
 .btn.small { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
+.btn-outline {
+  display: inline-block;
+  background: transparent;
+  color: var(--accent);
+  padding: 0.6rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  border: 1px solid var(--accent);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition);
+}
+.btn-outline:hover { background: var(--accent); color: #fff; }
+.btn-outline.small { padding: 0.3rem 0.8rem; font-size: 0.85rem; }
+
+/* 筛选标签（智能体广场） */
+.filter-tab {
+  display: inline-block;
+  padding: 0.4rem 1rem;
+  text-decoration: none;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  transition: border-color var(--transition), color var(--transition), background var(--transition);
+}
+.filter-tab:hover { border-color: var(--accent); color: var(--accent); }
+.filter-tab.current {
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+  background: rgba(124, 108, 240, 0.08);
+}
 
 /* 表单 */
 .form-card, .challenge-card, .detail-card {
@@ -277,16 +327,10 @@ textarea { resize: vertical; }
 /* 提交卡片 */
 .submission-card {
   display: block;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.2rem;
   margin: 0.8rem 0;
   text-decoration: none;
   color: var(--text);
-  transition: border-color 0.2s;
 }
-.submission-card:hover { border-color: var(--accent); }
 .submission-meta { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
 .author { color: var(--accent); font-weight: 600; }
 .date { color: var(--text-muted); font-size: 0.85rem; }
@@ -367,6 +411,32 @@ textarea { resize: vertical; }
 
 /* CTA */
 .cta { text-align: center; padding: 2rem 0; }
+
+/* 标签栏 */
+.tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.tab-btn {
+  flex: 1;
+  text-align: center;
+  padding: 0.6rem;
+  background: transparent;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background var(--transition), color var(--transition);
+}
+.tab-btn:hover { background: var(--surface2); }
+.tab-btn.active {
+  background: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
 
 /* 管理 */
 .admin-section { margin: 2rem 0; }
@@ -529,6 +599,10 @@ th { color: var(--text-muted); font-weight: 500; }
   font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0;
 }
 .agent-card-info { display: flex; flex-direction: column; gap: 0.1rem; }
+.agent-card-username { font-size: 0.8rem; color: var(--text-muted); }
+.agent-card-body { margin: 0.5rem 0; }
+.agent-card-body-sm { font-size: 0.8rem; }
+.agent-card-stats { display: flex; gap: 0.8rem; font-size: 0.8rem; color: var(--text-muted); }
 .agent-card-caps { display: flex; flex-wrap: wrap; gap: 0.3rem; }
 .tag-row { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
 .tag-chip {
