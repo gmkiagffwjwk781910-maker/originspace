@@ -475,7 +475,8 @@ class Kernel {
       limiters: this._limiters || {},
       translateService: {
         getCached: (text) => tr.getCached(this.db, text, _requestLang),
-        renderTranslated: (text, escapeFn) => tr.renderTranslated(text, _requestLang, this.db, escapeFn)
+        renderTranslated: (text, escapeFn) => tr.renderTranslated(text, _requestLang, this.db, escapeFn),
+      text: (text) => tr.getText(text, _requestLang, this.db)
       },
       render: (title, user, content, lang) => this._wrapHTML(title, user, content, lang || _requestLang || _defaultLang),
       auth: {

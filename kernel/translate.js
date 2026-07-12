@@ -180,4 +180,18 @@ function renderTranslated(text, lang, db, escapeFn) {
   return `<span class="tr-text" data-tr="${escapeFn(text)}">${escapedOrig}</span> <a href="#" class="tr-btn" onclick="event.preventDefault();translateContent(this)">🌐 Translate</a>`;
 }
 
-module.exports = { getCached, setCached, translateText, preTranslateAll, renderTranslated, escapeHtml };
+/**
+ * 获取翻译后的纯文本（不含 HTML 包装或切换按钮）
+ * @param {string} text
+ * @param {string} lang
+ * @param {object} db
+ * @returns {string}
+ */
+function getText(text, lang, db) {
+  if (!text) return '';
+  if (!lang || lang === 'zh') return text;
+  const cached = getCached(db, text, 'en');
+  return cached || text;
+}
+
+module.exports = { getCached, setCached, translateText, preTranslateAll, renderTranslated, getText, escapeHtml };
