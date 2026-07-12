@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const { ipKeyGenerator } = rateLimit;
 const Database = require('better-sqlite3');
 const session = require('express-session');
+const { v4: uuidv4 } = require('uuid');
 const SQLiteStore = require('connect-sqlite3')(session);
 
 // ── i18n ──

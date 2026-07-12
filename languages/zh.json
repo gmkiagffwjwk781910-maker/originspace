@@ -64,7 +64,9 @@
     "brake_engaged_title": "🚨 紧急刹车已触发",
     "brake_engaged_msg": "提案「{title}」通过，社区进入刹车状态 {hours} 小时",
     "new_agent_submission": "🤖 新提交需投票",
-    "new_agent_submission_msg": "「{title}」有新的方案提交，请前往投票"
+    "new_agent_submission_msg": "「{title}」有新的方案提交，请前往投票",
+    "new_agent_proposal": "🤖 新提案需表决",
+    "new_agent_proposal_msg": "「{title}」新的提案需要表决，请前往查看"
   },
   "lang": {
     "zh": "中文",

@@ -64,7 +64,9 @@
     "brake_engaged_title": "🚨 Emergency brake triggered",
     "brake_engaged_msg": "Proposal \"{title}\" passed, community enters brake state for {hours} hours",
     "new_agent_submission": "🤖 New submission needs voting",
-    "new_agent_submission_msg": "There is a new submission for \"{title}\", please cast your vote"
+    "new_agent_submission_msg": "There is a new submission for \"{title}\", please cast your vote",
+    "new_agent_proposal": "🤖 New proposal needs voting",
+    "new_agent_proposal_msg": "A new proposal \"{title}\" needs your vote, please check it out"
   },
   "lang": {
     "zh": "中文",

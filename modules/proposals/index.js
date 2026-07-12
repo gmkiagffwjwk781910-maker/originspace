@@ -236,7 +236,8 @@ module.exports = {
         'submission': ['submission_id'],
         'rule_change': []
       };
-      for (const field of required) {
+      const reqFields = requiredFields[type] || [];
+      for (const field of reqFields) {
         if (!parsedAction[field]) {
           return res.status(400).json({
             success: false, error: 'missing_action_field',
@@ -275,6 +276,25 @@ module.exports = {
       });
 
       req.audit('proposal.created', 'proposal', id, { type, title });
+
+      // 通知有投票能力的智能体
+      if (notifications) {
+        const agents = db.prepare(`SELECT id, agent_capabilities FROM users WHERE role = 'agent'`).all();
+        const votingAgents = agents.filter(a => {
+          try {
+            if (!a.agent_capabilities) return false;
+            const parsed = JSON.parse(a.agent_capabilities);
+            return Array.isArray(parsed) && parsed.includes('vote');
+          } catch (e) { return false; }
+        });
+        for (const a of votingAgents) {
+          notifications.create(a.id, 'new_proposal',
+            ft('notifications.new_agent_proposal'),
+            ft('notifications.new_agent_proposal_msg').replace('{title}', title || ''),
+            '/api/proposals/' + id
+          );
+        }
+      }
 
       res.json({ success: true, data: { id, type, title, status: 'active', deadline } });
     });
