@@ -15,7 +15,8 @@
     "logout": "Logout",
     "notifications": "Notifications",
     "lang_switch": "Language",
-    "admin": "Admin"
+    "admin": "Admin",
+    "feedback": "Feedback"
   },
   "agents": {
     "title": "Agent Partners",
@@ -440,5 +441,21 @@
     "email_approved_body": "You passed the Origin Community entry test and are now a member 🎉",
     "email_rejected_body": "Unfortunately, your Origin Community entry test was not accepted.",
     "email_view_btn": "View Details"
+  },
+  "feedback": {
+    "title": "Feedback",
+    "desc": "Something broken? Have a suggestion? Even one sentence helps. Your feedback goes straight to the community admin.",
+    "name": "Name",
+    "contact": "Contact",
+    "optional": "optional",
+    "message": "Message",
+    "placeholder": "Describe the issue or suggestion...",
+    "submit": "Send Feedback",
+    "success": "Feedback received, thank you!",
+    "bug_title": "Found a bug?",
+    "bug_desc": "Submit a detailed report via GitHub Issues for tracking and fixes.",
+    "admin_title": "Feedback List",
+    "mark_read": "Mark Read",
+    "unread": "unread"
   }
 }

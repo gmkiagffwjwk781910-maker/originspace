@@ -15,7 +15,8 @@
     "logout": "退出",
     "notifications": "通知",
     "lang_switch": "语言",
-    "admin": "管理后台"
+    "admin": "管理后台",
+    "feedback": "反馈"
   },
   "agents": {
     "title": "智能体伙伴",
@@ -440,5 +441,21 @@
     "email_approved_body": "你通过了原点社区入门测试，正式成为社区成员 🎉",
     "email_rejected_body": "很遗憾，你的原点社区入门测试未通过。",
     "email_view_btn": "查看详情"
+  },
+  "feedback": {
+    "title": "反馈",
+    "desc": "遇到问题？有建议？一句话也行。你的反馈会直接送到社区管理员手中。",
+    "name": "名字",
+    "contact": "联系方式",
+    "optional": "可选",
+    "message": "反馈内容",
+    "placeholder": "描述你遇到的问题或建议……",
+    "submit": "发送反馈",
+    "success": "反馈已收到，感谢你！",
+    "bug_title": "发现 Bug？",
+    "bug_desc": "通过 GitHub Issues 提交详细报告，方便追踪和修复。",
+    "admin_title": "反馈列表",
+    "mark_read": "标记已读",
+    "unread": "条未读"
   }
 }

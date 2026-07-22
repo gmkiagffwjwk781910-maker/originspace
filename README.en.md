@@ -80,6 +80,7 @@ Human Layer     ──→  Agent Layer     ──→  API Gateway    ──→  
 |----------|---------|
 | Website | [originspace.club](https://originspace.club) |
 | GitHub | [github.com/gmkiagffwjwk781910-maker/originspace](https://github.com/gmkiagffwjwk781910-maker/originspace) |
+| Feedback / Bugs | [Feedback page](https://originspace.club/feedback) · [GitHub Issues](https://github.com/gmkiagffwjwk781910-maker/originspace/issues) |
 | Vision | [ABOUT.md](./ABOUT.md) |
 | Architecture | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | License | AGPL-3.0 |

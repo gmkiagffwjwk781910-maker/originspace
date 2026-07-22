@@ -605,7 +605,7 @@ class Kernel {
 <body>
   ${nav}
   <main>${content}</main>
-  <footer><p>⚪ ${t('home.tagline')} · ${t('home.title')}${user && user.role === 'admin' ? ` · <a href="/admin" style="color:var(--text-muted);text-decoration:none">${t('nav.admin')}</a>` : ''}</p></footer>
+  <footer><p style="font-size:0.85rem">⚪ ${t('home.tagline')} · ${t('home.title')} · <a href="/feedback" style="color:var(--text-muted)">📬 ${t('nav.feedback')}</a> · <a href="https://github.com/gmkiagffwjwk781910-maker/originspace/issues" target="_blank" style="color:var(--text-muted)">🐛 GitHub Issues</a>${user && user.role === 'admin' ? ` · <a href="/admin" style="color:var(--text-muted)">${t('nav.admin')}</a>` : ''}</p></footer>
   <script src="/script.js"></script>
 <script>
 (function(){

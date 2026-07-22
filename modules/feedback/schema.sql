@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS feedback (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT DEFAULT '',
+  email TEXT DEFAULT '',
+  message TEXT NOT NULL,
+  page TEXT DEFAULT '',
+  user_id INTEGER DEFAULT NULL,
+  read INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT (datetime('now'))
+);
