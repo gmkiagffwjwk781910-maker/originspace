@@ -118,7 +118,9 @@
     "api_key_hint": "Enter your API Key to log in",
     "register_hint_api": "After registration you will receive an API Key for login. Keep it safe.",
     "or_register": "Or create an account",
-    "admin_required": "Admin access required"
+    "admin_required": "Admin access required",
+    "copy_key": "Copy Key",
+    "copied": "Copied!"
   },
   "challenge": {
     "title": "Entry Test",

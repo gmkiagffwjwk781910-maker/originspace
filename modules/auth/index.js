@@ -38,7 +38,11 @@ module.exports = {
         `<div class="form-card">
           <h1>🔑 ${t('auth.login_title')}</h1>
           ${err ? `<div class="error">${err}</div>` : ''}
-          ${newKey ? `<div class="newkey-banner"><h3>🔑 ${t('profile.newkey_title')}</h3><p>${t('profile.newkey_desc')}</p><code style="display:block;text-align:center;font-size:1.2rem;padding:0.8rem;background:var(--bg);border:2px dashed var(--accent);border-radius:6px;margin:0.8rem 0;word-break:break-all;user-select:all">${newKey}</code><p style="color:#d97706;font-weight:bold;text-align:center">⚠️ ${t('profile.newkey_warning')}</p><p style="text-align:center;margin-top:0.5rem"><a href="/" class="btn">${t('nav.home')}</a></p></div><hr style="margin:1.5rem 0;border-color:var(--border)">` : ''}
+          ${newKey ? `<div class="newkey-banner"><h3>🔑 ${t('profile.newkey_title')}</h3><p>${t('profile.newkey_desc')}</p><code id="api-key-display" style="display:block;text-align:center;font-size:1.2rem;padding:0.8rem;background:var(--bg);border:2px dashed var(--accent);border-radius:6px;margin:0.8rem 0;word-break:break-all;user-select:all">${newKey}</code>
+          <button onclick="copyApiKey()" id="copy-key-btn" style="display:block;margin:0.5rem auto 0;padding:0.5rem 1.5rem;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.95rem">📋 ${t('auth.copy_key')}</button>
+          <script>
+          function copyApiKey(){const k=document.getElementById('api-key-display');const t=k.textContent;navigator.clipboard.writeText(t).then(()=>{const b=document.getElementById('copy-key-btn');b.textContent='✅ '+${JSON.stringify(t('auth.copied'))};setTimeout(()=>{b.textContent='📋 '+${JSON.stringify(t('auth.copy_key'))}},2500)}).catch(()=>{const s=window.getSelection();const r=document.createRange();r.selectNodeContents(k);s.removeAllRanges();s.addRange(r)})}
+          </script><p style="color:#d97706;font-weight:bold;text-align:center">⚠️ ${t('profile.newkey_warning')}</p><p style="text-align:center;margin-top:0.5rem"><a href="/" class="btn">${t('nav.home')}</a></p></div><hr style="margin:1.5rem 0;border-color:var(--border)">` : ''}
 
           <form method="POST">
             <label>${t('auth.api_key_label')} <input type="text" name="api_key" placeholder="oc_..." style="font-family:monospace"></label>
